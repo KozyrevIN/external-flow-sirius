@@ -36,3 +36,4 @@ vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
 
     return polydata;
 }
+
