@@ -5,12 +5,16 @@ project(external-flow)
 # Searching for dependencies
 find_package(VTK
 COMPONENTS
-    CommonCore
+  CommonCore
+  CommonDataModel
+  IOLegacy
+  FiltersGeometry
 )
 
 # Setting executable
 set(SOURCES 
     src/main.cpp
+    src/utils.cpp
 )
 
 #set(CMAKE_CXX_FLAGS "-O2")
