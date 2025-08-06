@@ -57,5 +57,6 @@ CMakeUserPresets.json
 *.sln.docstates
 *.swp
 *~
+.claude
 
 

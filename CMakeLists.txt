@@ -17,7 +17,7 @@ COMPONENTS
 set(SOURCES 
     src/main.cpp
     src/utils.cpp
-    src/attach_f.cpp
+    src/functions.cpp
     src/geometry.cpp
 )
 
