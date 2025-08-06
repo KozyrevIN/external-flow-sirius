@@ -2,13 +2,14 @@
 # Layer 1: Build & Install Directories
 # This is the primary defense. Assumes an out-of-source build.
 # =========================================================================
+
 [Bb]uild/
 build-*/
 [Ii]nstall/
 bin/
 lib/
 lib64/
-
+*.vtp
 # =========================================================================
 # Layer 2: CMake Generated Files (The Standard Template)
 # This is a safety net to prevent committing files from an in-source build.

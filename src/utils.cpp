@@ -4,6 +4,7 @@
 #include <vtkUnstructuredGrid.h>
 #include <vtkUnstructuredGridReader.h>
 #include <vtkPolyDataWriter.h>
+#include <vtkCellData.h>
 #include <iostream>
 
 vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
@@ -48,3 +49,16 @@ void save_mesh(vtkPolyData* polyData, std::string filepath) {
     std::cout << "Mesh saved to " << filepath << std::endl;
 }
 
+Vector3D getCenter(vtkIdType cellId, vtkPolyData* polyData) {
+    vtkDataArray* centerArray = polyData->GetCellData()->GetArray("CellCenters");
+    
+    double center[3];
+    centerArray->GetTuple(cellId, center);
+    Vector3D center_vector = Vector3D(center[0], center[1], center[2]);
+    return center_vector;
+}
+
+double getAttributeArea(vtkIdType cellId, vtkPolyData* polyData) {
+    vtkDataArray* areaArray = polyData->GetCellData()->GetArray("Area");
+    return areaArray->GetTuple1(cellId);
+}

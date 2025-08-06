@@ -12,6 +12,7 @@
 #include <cmath>
 #include <functional>
 #include "../include/vector_3d.h"
+#include "../include/utils.h"
 
 void get_cell_center(vtkCell *cell, Vector3D *center) {
     double coords[3];
@@ -28,10 +29,11 @@ void get_cell_center(vtkCell *cell, Vector3D *center) {
     delete[] weights;
 }
 void attach_center_to_cells(vtkPolyData* polyData) {
+void attach_center_to_cells(vtkPolyData* polyData) {
     vtkIdType numCells = polyData->GetNumberOfCells();
     
     // Создаем массив для хранения центров ячеек
-    vtkSmartPointer<vtkFloatArray> centerArray = vtkSmartPointer<vtkFloatArray>::New();
+    vtkSmartPointer<vtkDoubleArray> centerArray = vtkSmartPointer<vtkDoubleArray>::New();
     centerArray->SetNumberOfComponents(3);
     centerArray->SetNumberOfTuples(numCells);
     centerArray->SetName("CellCenters");
@@ -43,10 +45,10 @@ void attach_center_to_cells(vtkPolyData* polyData) {
         get_cell_center(cell, &center);
         
         // Сохраняем координаты центра в массив
-        float centerCoords[3] = {
-            static_cast<float>(center.x),
-            static_cast<float>(center.y), 
-            static_cast<float>(center.z)
+        double centerCoords[3] = {
+            static_cast<double>(center.x),
+            static_cast<double>(center.y), 
+            static_cast<double>(center.z)
         };
         centerArray->SetTuple(i, centerCoords);
     }
@@ -113,7 +115,7 @@ void attach_area(vtkPolyData* polyData) {
     vtkIdType numCells = polyData->GetNumberOfCells();
     
     // Создаем массив для хранения площадей ячеек
-    vtkSmartPointer<vtkFloatArray> areaArray = vtkSmartPointer<vtkFloatArray>::New();
+    vtkSmartPointer<vtkDoubleArray> areaArray = vtkSmartPointer<vtkDoubleArray>::New();
     areaArray->SetNumberOfComponents(1);
     areaArray->SetNumberOfTuples(numCells);
     areaArray->SetName("Area");
@@ -130,4 +132,45 @@ void attach_area(vtkPolyData* polyData) {
     
     // Отладочная информация
     std::cout << "Добавлен массив площадей ячеек: " << numCells << " площадей" << std::endl;
+}
+
+grad_calculator::grad_calculator(std::function<double(Vector3D)> f, double epsilon, std::function<double(double)> kernel) : f(f), epsilon(epsilon), kernel(kernel) {}
+
+Vector3D grad_calculator::calc_grad(vtkSmartPointer<vtkPolyData> polyData, vtkIdType cellId) {
+        vtkCell* cell = polyData->GetCell(cellId);
+        Vector3D grad(0.0, 0.0, 0.0);
+        double area = getAttributeArea(cellId, polyData);
+        Vector3D center = getCenter(cellId, polyData);
+        double f_value = f(center);
+        for (vtkIdType i = 0; i < cell->GetNumberOfPoints(); i++) {
+            Vector3D center_i = getCenter(i, polyData);
+            double area_i = getAttributeArea(i, polyData);
+            double f_value_i = f(center_i);
+            double distance = sqrt(pow(center_i.x - center.x, 2) + pow(center_i.y - center.y, 2) + pow(center_i.z - center.z, 2));
+            double coeff = (f_value_i - f_value) * area_i * kernel(distance);
+            Vector3D diff(center_i.x - center.x, center_i.y - center.y, center_i.z - center.z);
+            Vector3D projection = calc_projection(cell, &diff);
+            grad.x += coeff * projection.x;
+            grad.y += coeff * projection.y;
+            grad.z += coeff * projection.z;
+        }
+        grad.x /= pow(epsilon,4);
+        grad.y /= pow(epsilon,4);
+        grad.z /= pow(epsilon,4);
+        
+        return grad;
+}
+
+void grad_calculator::attach_grad(vtkSmartPointer<vtkPolyData> polyData) {
+        vtkIdType numCells = polyData->GetNumberOfCells();
+        vtkSmartPointer<vtkDoubleArray> gradArray = vtkSmartPointer<vtkDoubleArray>::New();
+        gradArray->SetNumberOfComponents(3);
+        gradArray->SetNumberOfTuples(numCells);
+        gradArray->SetName("Grad");
+        for (vtkIdType i = 0; i < numCells; i++) {
+            Vector3D grad = calc_grad(polyData, i);
+            double gradValues[3] = {grad.x, grad.y, grad.z};
+            gradArray->SetTuple(i, gradValues);
+        }
+        polyData->GetCellData()->SetVectors(gradArray);
 }
