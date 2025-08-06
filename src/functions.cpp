@@ -3,6 +3,7 @@
 #include <vtkDoubleArray.h>
 
 #include "../include/functions.h"
+#include "../include/geometry.h"
 
 // f_1(x) = x[0]
 double f_1(const Vector3D &vec) { return vec.x; }
@@ -65,9 +66,11 @@ void attach_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
 
         // Evaluate our function f_grad(x, y, z) at the center
         Vector3D grad = f_grad({center[0], center[1], center[2]});
+        Vector3D grad_projected = calc_projection(mesh->GetCell(cellId), &grad);
 
         // Store this value in our array at the cell's index
-        double gradArray[3] = {grad.x, grad.y, grad.z};
+        double gradArray[3] = {grad_projected.x, grad_projected.y,
+                               grad_projected.z};
         vectorArray->SetTuple(cellId, gradArray);
     }
 
