@@ -3,6 +3,8 @@
 #include <vtkGeometryFilter.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkUnstructuredGridReader.h>
+#include <vtkPolyDataWriter.h>
+#include <iostream>
 
 vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
 
@@ -35,5 +37,14 @@ vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
     vtkSmartPointer<vtkPolyData> polydata = geometryFilter->GetOutput();
 
     return polydata;
+}
+
+void save_mesh(vtkPolyData* polyData, std::string filepath) {
+    vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+    writer->SetFileName(filepath.c_str());
+    writer->SetInputData(polyData);
+    writer->Write();
+    
+    std::cout << "Mesh saved to " << filepath << std::endl;
 }
 

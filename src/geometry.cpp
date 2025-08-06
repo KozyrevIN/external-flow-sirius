@@ -5,50 +5,54 @@
 #include <vtkPolygon.h>
 #include <vtkMath.h>
 #include <vtkPoints.h>
+#include <vtkFloatArray.h>
+#include <vtkSmartPointer.h>
+#include <vtkCellData.h>
 #include <iostream>
+#include "../include/vector_3d.h"
 
-void get_cell_center(vtkCell *cell, std::vector<double> *center) {
-    cell->GetParametricCenter(center->data());
+void get_cell_center(vtkCell *cell, Vector3D *center) {
+    double coords[3];
+    double pcoords[3] = {0.5, 0.5, 0.5}; // parametric coordinates for center
+    double *weights = new double[cell->GetNumberOfPoints()];
+    int subId = 0;
+    
+    cell->EvaluateLocation(subId, pcoords, coords, weights);
+    
+    center->x = coords[0];
+    center->y = coords[1]; 
+    center->z = coords[2];
+    
+    delete[] weights;
 }
-
-void add_projection(vtkCell *cell, std::vector<double> *point, vtkPolyData* polyData, vtkIdType cellId) {
-    vtkDataArray* projArray = get_cell_attribute(polyData, "projection");
-    if (!projArray) {
-        add_cell_attribute("projection", polyData, 3, VTK_DOUBLE);
-        projArray = get_cell_attribute(polyData, "projection");
+void add_center_to_cells(vtkPolyData* polyData) {
+    vtkIdType numCells = polyData->GetNumberOfCells();
+    
+    // Создаем массив для хранения центров ячеек
+    vtkSmartPointer<vtkFloatArray> centerArray = vtkSmartPointer<vtkFloatArray>::New();
+    centerArray->SetNumberOfComponents(3);
+    centerArray->SetNumberOfTuples(numCells);
+    centerArray->SetName("CellCenters");
+    
+    // Вычисляем центр для каждой ячейки
+    for (vtkIdType i = 0; i < numCells; i++) {
+        vtkCell* cell = polyData->GetCell(i);
+        Vector3D center;
+        get_cell_center(cell, &center);
+        
+        // Сохраняем координаты центра в массив
+        float centerCoords[3] = {
+            static_cast<float>(center.x),
+            static_cast<float>(center.y), 
+            static_cast<float>(center.z)
+        };
+        centerArray->SetTuple(i, centerCoords);
     }
     
-    // Вычисляем нормаль к плоскости ячейки
-    double normal[3] = {0.0, 0.0, 0.0};
+    // Добавляем массив как атрибут к данным ячеек
+    polyData->GetCellData()->AddArray(centerArray);
     
-    if (cell->GetCellType() == VTK_TRIANGLE) {
-        // Для треугольника: нормаль через векторное произведение двух сторон
-        vtkPoints* points = cell->GetPoints();
-        if (points->GetNumberOfPoints() >= 3) {
-            double p0[3], p1[3], p2[3];
-            points->GetPoint(0, p0);
-            points->GetPoint(1, p1);
-            points->GetPoint(2, p2);
-            
-            // Векторы сторон треугольника
-            double v1[3] = {p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]};
-            double v2[3] = {p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]};
-            
-            // Векторное произведение дает нормаль
-            vtkMath::Cross(v1, v2, normal);
-            vtkMath::Normalize(normal);
-        }
-    }
-    
-    // Вычисляем проекцию вектора на плоскость ячейки
-    // Проекция = вектор - (вектор · нормаль) * нормаль
-    double pointVec[3] = {(*point)[0], (*point)[1], (*point)[2]};
-    double dotProduct = vtkMath::Dot(pointVec, normal);
-    
-    double projection[3];
-    projection[0] = pointVec[0] - dotProduct * normal[0];
-    projection[1] = pointVec[1] - dotProduct * normal[1];
-    projection[2] = pointVec[2] - dotProduct * normal[2];
-    
-    projArray->SetTuple3(cellId, projection[0], projection[1], projection[2]);
+    // Отладочная информация
+    std::cout << "Добавлен массив центров ячеек: " << numCells << " центров" << std::endl;
+    std::cout << "Количество массивов в CellData: " << polyData->GetCellData()->GetNumberOfArrays() << std::endl;
 }

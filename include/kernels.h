@@ -1,5 +1,4 @@
 #include <cmath>
-#include <unordered_map>
 
 double kernel_base(double r)
 {
