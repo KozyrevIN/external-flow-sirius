@@ -2,22 +2,29 @@
 #define FUNCTIONS_H
 
 #include <cmath>
+#include <functional>
+
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
 
 #include "vector_3d.h"
 
 // f_1(x) = x[0]
-double f_1(const Vector3D &vec) { return vec.x; }
+double f_1(const Vector3D &vec);
 
-Vector3D grad_f_1(const Vector3D &vec) { return {1.0, 0, 0}; }
+Vector3D grad_f_1(const Vector3D &vec);
 
 // f_2(x) = cos(\theta)
-double f_2(const Vector3D &vec) {
-    return -vec.x / std::sqrt(vec.x * vec.x + vec.z * vec.z);
-}
+double f_2(const Vector3D &vec);
 
-Vector3D grad_f_2(const Vector3D &vec) {
-    double denominator = std::pow(vec.x * vec.x + vec.z * vec.z, 1.5);
-    return {-vec.z * vec.z / denominator, 0, vec.x * vec.z / denominator};
-}
+Vector3D grad_f_2(const Vector3D &vec);
+
+// functions to attach f anf grad f to mesh
+
+void attach_f(vtkSmartPointer<vtkPolyData> mesh,
+              const std::function<double(Vector3D)> &f);
+
+void attach_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
+                        const std::function<Vector3D(Vector3D)> &f_grad);
 
 #endif
