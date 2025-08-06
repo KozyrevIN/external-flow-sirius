@@ -27,7 +27,7 @@ void get_cell_center(vtkCell *cell, Vector3D *center) {
     
     delete[] weights;
 }
-void add_center_to_cells(vtkPolyData* polyData) {
+void attach_center_to_cells(vtkPolyData* polyData) {
     vtkIdType numCells = polyData->GetNumberOfCells();
     
     // Создаем массив для хранения центров ячеек
@@ -130,34 +130,4 @@ void attach_area(vtkPolyData* polyData) {
     
     // Отладочная информация
     std::cout << "Добавлен массив площадей ячеек: " << numCells << " площадей" << std::endl;
-}
-
-Vector3D calc_grad(vtkPolyData* polyData, vtkIdType cellId, std::function<double(Vector3D)> f) {
-    vtkCell* cell = polyData->GetCell(cellId);
-    Vector3D grad(0.0, 0.0, 0.0);
-    
-    for (vtkIdType i = 0; i < cell->GetNumberOfPoints(); i++) {
-        // Получаем координаты точки
-        double coords[3];
-        cell->GetPoints()->GetPoint(i, coords);
-        Vector3D point(coords[0], coords[1], coords[2]);
-        
-        // Вычисляем градиент
-        Vector3D normal = calc_normal(cell);
-        double f_value = f(point);
-        
-        grad.x += f_value * normal.x;
-        grad.y += f_value * normal.y;
-        grad.z += f_value * normal.z;
-    }
-    
-    // Нормируем на площадь
-    double area = calc_area(cell);
-    if (area > 0) {
-        grad.x /= area;
-        grad.y /= area;
-        grad.z /= area;
-    }
-    
-    return grad;
 }
