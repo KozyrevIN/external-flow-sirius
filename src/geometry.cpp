@@ -9,6 +9,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkCellData.h>
 #include <iostream>
+#include <cmath>
 #include "../include/vector_3d.h"
 
 void get_cell_center(vtkCell *cell, Vector3D *center) {
@@ -55,4 +56,43 @@ void add_center_to_cells(vtkPolyData* polyData) {
     // Отладочная информация
     std::cout << "Добавлен массив центров ячеек: " << numCells << " центров" << std::endl;
     std::cout << "Количество массивов в CellData: " << polyData->GetCellData()->GetNumberOfArrays() << std::endl;
+}
+Vector3D calc_normal(vtkCell *cell) {
+    double p0[3], p1[3], p2[3];
+    cell->GetPoints()->GetPoint(0, p0);
+    cell->GetPoints()->GetPoint(1, p1);
+    cell->GetPoints()->GetPoint(2, p2);
+    
+    // Вычисляем нормаль треугольника через метод vtkTriangle
+    double normal[3];
+    vtkTriangle::ComputeNormal(p0, p1, p2, normal);
+    
+    Vector3D normal_vector;
+    normal_vector.x = normal[0];
+    normal_vector.y = normal[1];
+    normal_vector.z = normal[2];
+    
+    return normal_vector;
+}
+Vector3D calc_projection(vtkCell *cell, Vector3D *vector) {
+    // Получаем точки треугольника
+    double p0[3], p1[3], p2[3];
+    cell->GetPoints()->GetPoint(0, p0);
+    cell->GetPoints()->GetPoint(1, p1);
+    cell->GetPoints()->GetPoint(2, p2);
+    
+    // Вычисляем нормаль треугольника через метод vtkTriangle
+    double normal[3];
+    vtkTriangle::ComputeNormal(p0, p1, p2, normal);
+    
+    // Вычисляем скалярное произведение вектора на нормаль
+    double dot_product = vector->x * normal[0] + vector->y * normal[1] + vector->z * normal[2];
+    
+    // Проекция вектора на плоскость = вектор - (нормальная составляющая)
+    Vector3D projection;
+    projection.x = vector->x - dot_product * normal[0];
+    projection.y = vector->y - dot_product * normal[1];
+    projection.z = vector->z - dot_product * normal[2];
+    
+    return projection;
 }
