@@ -7,6 +7,7 @@ find_package(VTK
 COMPONENTS
   CommonCore
   CommonDataModel
+  IOXML
   IOLegacy
   FiltersGeometry
 )
@@ -15,6 +16,7 @@ COMPONENTS
 set(SOURCES 
     src/main.cpp
     src/utils.cpp
+    src/attach_f.cpp
 )
 
 #set(CMAKE_CXX_FLAGS "-O2")
