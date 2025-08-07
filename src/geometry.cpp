@@ -152,7 +152,7 @@ Vector3D grad_calculator::calc_grad(vtkSmartPointer<vtkPolyData> polyData,
     Vector3D grad(0.0, 0.0, 0.0);
     Vector3D center = getCenter(cellId, polyData);
     double f_value = f(center);
-    for (vtkIdType i = 0; i < cell->GetNumberOfPoints(); i++) {
+    for (vtkIdType i = 0; i < polyData->GetNumberOfCells(); i++) {
         Vector3D center_i = getCenter(i, polyData);
         double area_i = getAttributeArea(i, polyData);
         double f_value_i = f(center_i);
@@ -160,13 +160,13 @@ Vector3D grad_calculator::calc_grad(vtkSmartPointer<vtkPolyData> polyData,
             sqrt(pow(center_i.x - center.x, 2) + pow(center_i.y - center.y, 2) +
                  pow(center_i.z - center.z, 2));
         double coeff = (f_value_i - f_value) * area_i * kernel(distance/epsilon);
-        Vector3D diff(center_i.x - center.x, center_i.y - center.y,
-                      center_i.z - center.z);
-        Vector3D projection = calc_projection(cell, &diff);
-        grad.x += coeff * projection.x;
-        grad.y += coeff * projection.y;
-        grad.z += coeff * projection.z;
+        Vector3D diff(center.x - center_i.x, center.y - center_i.y,
+                      center.z - center_i.z);
+        grad.x += coeff * diff.x;
+        grad.y += coeff * diff.y;
+        grad.z += coeff * diff.z;
     }
+    grad = calc_projection(cell, &grad);
     grad.x /= pow(epsilon, 4);
     grad.y /= pow(epsilon, 4);
     grad.z /= pow(epsilon, 4);

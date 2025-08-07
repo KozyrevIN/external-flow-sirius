@@ -41,5 +41,4 @@ int main(int argc, char *argv[]) {
     vtkSmartPointer<vtkPolyData> mesh = load_and_init_mash();
     add_grads(mesh);
     write_mesh(mesh);
-
 }

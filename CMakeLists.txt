@@ -44,7 +44,7 @@ set(VISUALIZER_EXAMPLE_SOURCES
 )
 
 # Release build optimizations for main target
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
 
 add_executable(main ${SOURCES})
 add_executable(visualizer_example ${VISUALIZER_EXAMPLE_SOURCES})
