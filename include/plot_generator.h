@@ -16,6 +16,7 @@ private:
     
     // Helper functions
     void createPlotsDirectory();
+    void createTempDirectories();
     std::string getNextPlotFilename();
     int getNextAvailablePlotNumber();
     bool executeCommand(const std::string& command);
@@ -67,6 +68,7 @@ public:
         double epsilon_max = 1.0,
         int num_points = 20,
         const std::string& function_name = "f",
+        NormType normType = NormType::L2,
         const std::string& trueGradArrayName = "f true grad",
         const std::string& computedGradArrayName = "Grad"
     );

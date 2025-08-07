@@ -83,6 +83,15 @@ vtkSmartPointer<vtkPolyData> load_and_init_mash(std::string mesh_in_path){
 }
 
 void write_mesh(vtkSmartPointer<vtkPolyData> mesh, std::string mesh_out_path){
+    // Ensure meshes directory exists
+    std::string mkdir_cmd = "mkdir -p meshes";
+    std::system(mkdir_cmd.c_str());
+    
+    // Prepend meshes/ if not already present
+    if (mesh_out_path.find("meshes/") != 0) {
+        mesh_out_path = "meshes/" + mesh_out_path;
+    }
+    
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(mesh_out_path.c_str());
     writer->SetInputData(mesh);

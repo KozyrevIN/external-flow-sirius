@@ -282,6 +282,10 @@ void GradientVisualizer::evaluateEpsilonError(
 
 void GradientVisualizer::add_errors_in_mesh(const std::string &differenceArrayName,
                                            const std::string &errorNormArrayName) {
+    // Ensure meshes directory exists
+    std::string mkdir_cmd = "mkdir -p meshes";
+    std::system(mkdir_cmd.c_str());
+    
     // Compute gradient differences and error norms
     std::vector<Vector3D> differences = computeGradientDifferences();
     std::vector<double> errorNorms = computeErrorNormsPerCell();

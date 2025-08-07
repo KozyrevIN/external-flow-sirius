@@ -15,6 +15,7 @@ PlotGenerator::PlotGenerator(const std::string& plotsDirectory,
                              const std::string& pythonScriptPath)
     : plots_dir(plotsDirectory), python_script_path(pythonScriptPath) {
     createPlotsDirectory();
+    createTempDirectories();
 }
 
 void PlotGenerator::createPlotsDirectory() {
@@ -26,6 +27,23 @@ void PlotGenerator::createPlotsDirectory() {
     } else {
         std::cerr << "Warning: Failed to create plots directory: " << plots_dir << std::endl;
     }
+}
+
+void PlotGenerator::createTempDirectories() {
+    // Create temp directory structure
+    std::string temp_dir = "temp";
+    std::string csv_dir = "temp/csv";
+    std::string meshes_dir = "meshes";
+    
+    std::string mkdir_temp_cmd = "mkdir -p " + temp_dir;
+    std::string mkdir_csv_cmd = "mkdir -p " + csv_dir;
+    std::string mkdir_meshes_cmd = "mkdir -p " + meshes_dir;
+    
+    std::system(mkdir_temp_cmd.c_str());
+    std::system(mkdir_csv_cmd.c_str());
+    std::system(mkdir_meshes_cmd.c_str());
+    
+    std::cout << "Created temporary directories: temp/csv and meshes" << std::endl;
 }
 
 int PlotGenerator::getNextAvailablePlotNumber() {
@@ -76,7 +94,7 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
         GradientVisualizer visualizer(mesh, trueGradArrayName, computedGradArrayName);
         
         // Generate temporary CSV filename
-        std::string csv_filename = "temp_epsilon_analysis_" + std::to_string(getNextAvailablePlotNumber()) + ".csv";
+        std::string csv_filename = "temp/csv/epsilon_analysis_" + std::to_string(getNextAvailablePlotNumber()) + ".csv";
         
         std::cout << "Generating epsilon error analysis..." << std::endl;
         visualizer.evaluateEpsilonError(
@@ -162,6 +180,7 @@ std::string PlotGenerator::generateKernelComparisonPlot(
     double epsilon_max,
     int num_points,
     const std::string& function_name,
+    NormType normType,
     const std::string& trueGradArrayName,
     const std::string& computedGradArrayName) {
     
@@ -189,14 +208,14 @@ std::string PlotGenerator::generateKernelComparisonPlot(
             auto kernel_func = kernel_pair.second.first;
             auto kernel_name = kernel_pair.second.second;
             
-            std::string csv_filename = "temp_kernel_" + std::to_string(kernel_num) + 
+            std::string csv_filename = "temp/csv/kernel_" + std::to_string(kernel_num) + 
                                      "_analysis_" + std::to_string(getNextAvailablePlotNumber()) + ".csv";
             csv_files.push_back(csv_filename);
             
             std::cout << "Processing " << kernel_name << "..." << std::endl;
             visualizer.evaluateEpsilonError(
                 function, kernel_func, epsilon_min, epsilon_max,
-                num_points, csv_filename, NormType::L2
+                num_points, csv_filename, normType
             );
             
             // Find best epsilon and error for this kernel
@@ -238,15 +257,19 @@ std::string PlotGenerator::generateKernelComparisonPlot(
             python_cmd << " " << csv_files[i];
         }
         
+        std::string norm_name = (normType == NormType::L1) ? "L1" :
+                               (normType == NormType::L2) ? "L2" : "L∞";
+        
         python_cmd << " -o " << plot_filename
-                   << " --function \"" << function_name << "\"";
+                   << " --function \"" << function_name << "\""
+                   << " --norm \"" << norm_name << "\"";
         
         bool success = executeCommand(python_cmd.str());
         
         // Clean up CSV files
         for (const std::string& csv_file : csv_files) {
             std::string rm_cmd = "rm -f " + csv_file;
-            std::systemS(rm_cmd.c_str());
+            std::system(rm_cmd.c_str());
         }
         
         // Output best results to console
@@ -268,7 +291,7 @@ std::string PlotGenerator::generateKernelComparisonPlot(
             
             std::cout << std::left << std::setw(10) << kernel_name 
                       << " | Best ε: " << std::setw(8) << std::fixed << std::setprecision(6) << eps
-                      << " | L2 Error: " << std::scientific << std::setprecision(3) << err << std::endl;
+                      << " | " << norm_name << " Error: " << std::scientific << std::setprecision(3) << err << std::endl;
             
             if (err < overall_best_error) {
                 overall_best_error = err;

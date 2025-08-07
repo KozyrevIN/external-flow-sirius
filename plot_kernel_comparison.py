@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-def plot_kernel_comparison(csv_files, output_file=None, function_name="f"):
+def plot_kernel_comparison(csv_files, output_file=None, function_name="f", norm_name="L2"):
     """
     Create 2x2 subplot comparing different kernels.
     
@@ -18,6 +18,7 @@ def plot_kernel_comparison(csv_files, output_file=None, function_name="f"):
         csv_files: List of CSV files for each kernel
         output_file: Output file path for saving plot
         function_name: Name of the function being analyzed
+        norm_name: Name of the norm being used
     """
     
     if len(csv_files) != 4:
@@ -61,7 +62,7 @@ def plot_kernel_comparison(csv_files, output_file=None, function_name="f"):
     
     # Create 2x2 subplot
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle(f'Kernel Comparison: {function_name} Function (L2 Norm)', fontsize=16, fontweight='bold')
+    fig.suptitle(f'Kernel Comparison: {function_name} Function ({norm_name} Norm)', fontsize=16, fontweight='bold')
     
     # Colors for each kernel
     colors = ['blue', 'red', 'green', 'orange']
@@ -85,7 +86,7 @@ def plot_kernel_comparison(csv_files, output_file=None, function_name="f"):
         
         # Set labels and title
         ax.set_xlabel('Epsilon', fontsize=10)
-        ax.set_ylabel('L2 Error', fontsize=10)
+        ax.set_ylabel(f'{norm_name} Error', fontsize=10)
         ax.set_title(f'{kernel_name}\nOptimal: ε={optimal_epsilon:.4f}, Error={min_error:.2e}', 
                     fontsize=11, fontweight='bold')
         ax.grid(True, alpha=0.3)
@@ -101,7 +102,34 @@ def plot_kernel_comparison(csv_files, output_file=None, function_name="f"):
         ax.set_xlim(global_epsilon_min * 0.8, global_epsilon_max * 1.2)
         ax.set_ylim(global_error_min * 0.5, global_error_max * 2.0)
     
+    # Find overall best kernel and add summary text at the bottom
+    overall_best_error = float('inf')
+    best_kernel_info = {}
+    
+    for i, kernel_data in enumerate(data):
+        epsilon = kernel_data['epsilon']
+        error = kernel_data['error']
+        kernel_name = kernel_data['kernel']
+        
+        min_error_idx = np.argmin(error)
+        optimal_epsilon = epsilon[min_error_idx]
+        min_error = error[min_error_idx]
+        
+        if min_error < overall_best_error:
+            overall_best_error = min_error
+            best_kernel_info = {
+                'name': kernel_name,
+                'epsilon': optimal_epsilon,
+                'error': min_error
+            }
+    
+    # Add summary text box at the bottom
+    summary_text = f"Best Overall Method: {best_kernel_info['name']} with ε={best_kernel_info['epsilon']:.6f} ({norm_name} Error: {best_kernel_info['error']:.3e})"
+    fig.text(0.5, 0.02, summary_text, ha='center', va='bottom', fontsize=12, 
+             fontweight='bold', bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.8))
+    
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.1)  # Make room for the summary text
     
     # Save or show plot
     if output_file:
@@ -129,6 +157,7 @@ def main():
     parser.add_argument('csv_files', nargs=4, help='Four CSV files for kernel_2, kernel_4, kernel_6, kernel_8')
     parser.add_argument('-o', '--output', help='Output file for plot (PNG format)')
     parser.add_argument('--function', default='f', help='Function name for plot title')
+    parser.add_argument('--norm', default='L2', help='Norm type for plot labels')
     
     args = parser.parse_args()
     
@@ -139,7 +168,7 @@ def main():
             return 1
     
     # Create the comparison plot
-    plot_kernel_comparison(args.csv_files, args.output, args.function)
+    plot_kernel_comparison(args.csv_files, args.output, args.function, args.norm)
     
     return 0
 
