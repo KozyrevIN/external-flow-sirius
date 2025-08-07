@@ -2,6 +2,7 @@
 #define VISUALIZER_H
 
 #include "vector_3d.h"
+#include <functional>
 #include <string>
 #include <vtkDoubleArray.h>
 #include <vtkPolyData.h>
@@ -51,6 +52,16 @@ class GradientVisualizer {
 
     // VTK visualization output methods
     void saveVisualization(const std::string &filename);
+
+    // Epsilon analysis methods
+    void evaluateEpsilonError(
+        std::function<double(Vector3D)> function,
+        std::function<double(double)> kernel,
+        double epsilon_min,
+        double epsilon_max,
+        int num_points,
+        const std::string& csv_filename,
+        NormType normType = NormType::L2);
 
     // Utility methods
     void printErrorStatistics();

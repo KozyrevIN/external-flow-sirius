@@ -35,14 +35,27 @@ set(SOURCES
     src/visualizer.cpp
 )
 
+set(VISUALIZER_EXAMPLE_SOURCES 
+    examples/visualizer_example.cpp
+    src/utils.cpp
+    src/functions.cpp
+    src/geometry.cpp
+    src/visualizer.cpp
+)
+
 # Release build optimizations for main target
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
 
 add_executable(main ${SOURCES})
+add_executable(visualizer_example ${VISUALIZER_EXAMPLE_SOURCES})
 
 # Set C++ standard and include directories for main target
 target_compile_features(main PRIVATE cxx_std_17)
 target_include_directories(main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Set C++ standard and include directories for visualizer_example target
+target_compile_features(visualizer_example PRIVATE cxx_std_17)
+target_include_directories(visualizer_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Create debug target with maximum compatible sanitizers
 add_executable(debug ${SOURCES})
@@ -70,12 +83,17 @@ target_link_libraries(main
    ${VTK_LIBRARIES}
 )
 
+target_link_libraries(visualizer_example
+  PRIVATE
+   ${VTK_LIBRARIES}
+)
+
 target_link_libraries(debug
   PRIVATE
    ${VTK_LIBRARIES}
 )
 
 vtk_module_autoinit(
-  TARGETS main debug
+  TARGETS main debug visualizer_example
   MODULES ${VTK_LIBRARIES}
 )
