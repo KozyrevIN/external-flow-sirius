@@ -3,6 +3,7 @@
 # This is the primary defense. Assumes an out-of-source build.
 # =========================================================================
 cmake-build-debug
+.claude
 [Bb]uild/
 build-*/
 [Ii]nstall/
