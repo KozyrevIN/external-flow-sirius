@@ -52,12 +52,6 @@ void attach_center_to_cells(vtkPolyData *polyData) {
 
     // Добавляем массив как атрибут к данным ячеек
     polyData->GetCellData()->AddArray(centerArray);
-
-    // Отладочная информация
-    std::cout << "Добавлен массив центров ячеек: " << numCells << " центров"
-              << std::endl;
-    std::cout << "Количество массивов в CellData: "
-              << polyData->GetCellData()->GetNumberOfArrays() << std::endl;
 }
 Vector3D calc_normal(vtkCell *cell) {
     double p0[3], p1[3], p2[3];

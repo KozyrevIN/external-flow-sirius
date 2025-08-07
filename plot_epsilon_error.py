@@ -9,7 +9,8 @@ import numpy as np
 import argparse
 import os
 
-def plot_epsilon_error(csv_file, output_file=None, log_scale=True):
+def plot_epsilon_error(csv_file, output_file=None, log_scale=True, 
+                       function_name="f", kernel_name="kernel", norm_name="L2"):
     """
     Plot epsilon vs error from CSV file.
     
@@ -17,6 +18,9 @@ def plot_epsilon_error(csv_file, output_file=None, log_scale=True):
         csv_file: Path to CSV file with epsilon and error columns
         output_file: Optional output file path for saving plot
         log_scale: Use log scale for both axes
+        function_name: Name of the function being analyzed
+        kernel_name: Name of the kernel used
+        norm_name: Name of the norm used
     """
     
     # Read CSV file
@@ -55,13 +59,13 @@ def plot_epsilon_error(csv_file, output_file=None, log_scale=True):
     if log_scale:
         plt.loglog(epsilon, error, 'bo-', linewidth=2, markersize=6)
         plt.xlabel('Epsilon (log scale)')
-        plt.ylabel('Error (log scale)')
-        plt.title('Gradient Calculation Error vs Epsilon Parameter (Log-Log Scale)')
+        plt.ylabel(f'{norm_name} Error (log scale)')
+        plt.title(f'Gradient Error Analysis: {function_name} with {kernel_name} ({norm_name} norm)')
     else:
         plt.plot(epsilon, error, 'bo-', linewidth=2, markersize=6)
         plt.xlabel('Epsilon')
-        plt.ylabel('Error')
-        plt.title('Gradient Calculation Error vs Epsilon Parameter')
+        plt.ylabel(f'{norm_name} Error')
+        plt.title(f'Gradient Error Analysis: {function_name} with {kernel_name} ({norm_name} norm)')
     
     plt.grid(True, alpha=0.3)
     
@@ -71,7 +75,8 @@ def plot_epsilon_error(csv_file, output_file=None, log_scale=True):
     min_error = error[min_error_idx]
     
     # Highlight optimal point
-    plt.plot(optimal_epsilon, min_error, 'ro', markersize=10, label=f'Optimal: ε={optimal_epsilon:.4f}, Error={min_error:.2f}')
+    plt.plot(optimal_epsilon, min_error, 'ro', markersize=10, 
+             label=f'Optimal: ε={optimal_epsilon:.4f}, {norm_name} Error={min_error:.2e}')
     
     plt.legend()
     plt.tight_layout()
@@ -96,6 +101,9 @@ def main():
                         help='Path to CSV file (default: out/epsilon_error_analysis.csv)')
     parser.add_argument('-o', '--output', help='Output file for plot (PNG format)')
     parser.add_argument('--linear', action='store_true', help='Use linear scale instead of log scale')
+    parser.add_argument('--function', default='f', help='Function name for plot title')
+    parser.add_argument('--kernel', default='kernel', help='Kernel name for plot title')
+    parser.add_argument('--norm', default='L2', help='Norm type for plot labels')
     
     args = parser.parse_args()
     
@@ -106,7 +114,8 @@ def main():
         return 1
     
     # Plot the data
-    plot_epsilon_error(args.csv_file, args.output, not args.linear)
+    plot_epsilon_error(args.csv_file, args.output, not args.linear,
+                      args.function, args.kernel, args.norm)
     
     return 0
 

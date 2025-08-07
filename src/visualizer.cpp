@@ -53,8 +53,7 @@ double GradientVisualizer::computeVectorNorm(const Vector3D &vec,
     return std::sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
-void GradientVisualizer::computeGradientDifference(
-    const std::string &outputArrayName) {
+std::vector<Vector3D> GradientVisualizer::computeGradientDifferences() {
     vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
     vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
@@ -65,31 +64,22 @@ void GradientVisualizer::computeGradientDifference(
     }
 
     vtkIdType numCells = mesh->GetNumberOfCells();
-
-    // Create output array for gradient differences
-    vtkSmartPointer<vtkDoubleArray> diffArray =
-        vtkSmartPointer<vtkDoubleArray>::New();
-    diffArray->SetNumberOfComponents(3);
-    diffArray->SetNumberOfTuples(numCells);
-    diffArray->SetName(outputArrayName.c_str());
+    std::vector<Vector3D> differences;
+    differences.reserve(numCells);
 
     // Compute differences for each cell
     for (vtkIdType i = 0; i < numCells; i++) {
         Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
         Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
 
-        Vector3D difference(trueGrad.x - computedGrad.x,
-                            trueGrad.y - computedGrad.y,
-                            trueGrad.z - computedGrad.z);
-
-        setVectorToArray(diffArray, i, difference);
+        differences.emplace_back(
+            trueGrad.x - computedGrad.x,
+            trueGrad.y - computedGrad.y,
+            trueGrad.z - computedGrad.z
+        );
     }
 
-    // Add the difference array to mesh
-    mesh->GetCellData()->AddArray(diffArray);
-
-    std::cout << "Computed gradient differences for " << numCells << " cells"
-              << std::endl;
+    return differences;
 }
 
 double GradientVisualizer::computeErrorNorm(NormType normType) {
@@ -103,53 +93,58 @@ double GradientVisualizer::computeErrorNorm(NormType normType) {
     }
 
     vtkIdType numCells = mesh->GetNumberOfCells();
-    std::vector<double> cellErrors(numCells);
-
-    // First compute Euclidean norm of error vector for each cell
-    for (vtkIdType i = 0; i < numCells; i++) {
-        Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
-        Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-
-        Vector3D errorVec(trueGrad.x - computedGrad.x,
-                          trueGrad.y - computedGrad.y,
-                          trueGrad.z - computedGrad.z);
-
-        // Individual vector norm is always Euclidean
-        cellErrors[i] =
-            std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y +
-                      errorVec.z * errorVec.z);
-    }
-
-    // Now compute the specified norm over the collection of cell errors
+    
+    // Optimized computation: calculate aggregate directly without storing all errors
+    double result = 0.0;
+    
     switch (normType) {
     case NormType::L1: {
-        double sum = 0.0;
-        for (double error : cellErrors) {
-            sum += error;
+        for (vtkIdType i = 0; i < numCells; i++) {
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
+            
+            double dx = trueGrad.x - computedGrad.x;
+            double dy = trueGrad.y - computedGrad.y;
+            double dz = trueGrad.z - computedGrad.z;
+            
+            result += std::sqrt(dx*dx + dy*dy + dz*dz);
         }
-        return sum;
+        return result;
     }
     case NormType::L2: {
-        double sumSquares = 0.0;
-        for (double error : cellErrors) {
-            sumSquares += error * error;
+        for (vtkIdType i = 0; i < numCells; i++) {
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
+            
+            double dx = trueGrad.x - computedGrad.x;
+            double dy = trueGrad.y - computedGrad.y;
+            double dz = trueGrad.z - computedGrad.z;
+            
+            double cellError = std::sqrt(dx*dx + dy*dy + dz*dz);
+            result += cellError * cellError;
         }
-        return std::sqrt(sumSquares);
+        return std::sqrt(result);
     }
     case NormType::LINF: {
-        double maxError = 0.0;
-        for (double error : cellErrors) {
-            maxError = std::max(maxError, error);
+        for (vtkIdType i = 0; i < numCells; i++) {
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
+            
+            double dx = trueGrad.x - computedGrad.x;
+            double dy = trueGrad.y - computedGrad.y;
+            double dz = trueGrad.z - computedGrad.z;
+            
+            double cellError = std::sqrt(dx*dx + dy*dy + dz*dz);
+            result = std::max(result, cellError);
         }
-        return maxError;
+        return result;
     }
     default:
         throw std::runtime_error("Unknown norm type");
     }
 }
 
-void GradientVisualizer::computeErrorNormPerCell(
-    NormType normType, const std::string &outputArrayName) {
+std::vector<double> GradientVisualizer::computeErrorNormsPerCell() {
     vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
     vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
@@ -160,34 +155,22 @@ void GradientVisualizer::computeErrorNormPerCell(
     }
 
     vtkIdType numCells = mesh->GetNumberOfCells();
-
-    // Create output array for per-cell error norms
-    vtkSmartPointer<vtkDoubleArray> errorArray =
-        vtkSmartPointer<vtkDoubleArray>::New();
-    errorArray->SetNumberOfComponents(1);
-    errorArray->SetNumberOfTuples(numCells);
-    errorArray->SetName(outputArrayName.c_str());
+    std::vector<double> errorNorms;
+    errorNorms.reserve(numCells);
 
     for (vtkIdType i = 0; i < numCells; i++) {
         Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
         Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
 
-        Vector3D errorVec(trueGrad.x - computedGrad.x,
-                          trueGrad.y - computedGrad.y,
-                          trueGrad.z - computedGrad.z);
+        double dx = trueGrad.x - computedGrad.x;
+        double dy = trueGrad.y - computedGrad.y;
+        double dz = trueGrad.z - computedGrad.z;
 
         // Individual vector norm is always Euclidean (L2)
-        double cellError =
-            std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y +
-                      errorVec.z * errorVec.z);
-        errorArray->SetTuple1(i, cellError);
+        errorNorms.push_back(std::sqrt(dx*dx + dy*dy + dz*dz));
     }
 
-    // Add the error array to mesh
-    mesh->GetCellData()->AddArray(errorArray);
-
-    std::cout << "Computed per-cell Euclidean error norms for " << numCells
-              << " cells" << std::endl;
+    return errorNorms;
 }
 
 void GradientVisualizer::saveVisualization(const std::string &filename) {
@@ -295,4 +278,42 @@ void GradientVisualizer::evaluateEpsilonError(
     
     csv_file.close();
     std::cout << "Epsilon error analysis saved to: " << csv_filename << std::endl;
+}
+
+void GradientVisualizer::add_errors_in_mesh(const std::string &differenceArrayName,
+                                           const std::string &errorNormArrayName) {
+    // Compute gradient differences and error norms
+    std::vector<Vector3D> differences = computeGradientDifferences();
+    std::vector<double> errorNorms = computeErrorNormsPerCell();
+    
+    vtkIdType numCells = mesh->GetNumberOfCells();
+    
+    // Create difference array (vector)
+    vtkSmartPointer<vtkDoubleArray> diffArray = vtkSmartPointer<vtkDoubleArray>::New();
+    diffArray->SetNumberOfComponents(3);
+    diffArray->SetNumberOfTuples(numCells);
+    diffArray->SetName(differenceArrayName.c_str());
+    
+    // Create error norm array (scalar)
+    vtkSmartPointer<vtkDoubleArray> errorArray = vtkSmartPointer<vtkDoubleArray>::New();
+    errorArray->SetNumberOfComponents(1);
+    errorArray->SetNumberOfTuples(numCells);
+    errorArray->SetName(errorNormArrayName.c_str());
+    
+    // Fill arrays
+    for (vtkIdType i = 0; i < numCells; i++) {
+        // Set difference vector
+        double diffVec[3] = {differences[i].x, differences[i].y, differences[i].z};
+        diffArray->SetTuple(i, diffVec);
+        
+        // Set error norm scalar
+        errorArray->SetTuple1(i, errorNorms[i]);
+    }
+    
+    // Add arrays to mesh
+    mesh->GetCellData()->AddArray(diffArray);
+    mesh->GetCellData()->AddArray(errorArray);
+    
+    std::cout << "Added gradient differences and error norms to mesh for " 
+              << numCells << " cells" << std::endl;
 }

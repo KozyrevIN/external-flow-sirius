@@ -36,14 +36,15 @@ show_help() {
 
     echo ""
     echo "EXAMPLE TARGETS:"
-    echo "  visualizer_example      Test GradientVisualizer functionality"
-    echo "                          - Performs epsilon error analysis"
-    echo "                          - Generates CSV data for plotting"
-    echo ""
     echo "  plot_generator_example  Test PlotGenerator functionality"
     echo "                          - Generates multiple PNG plots automatically"
     echo "                          - Tests different kernels and parameters"
     echo "                          - Outputs to plots/ directory"
+    echo ""
+    echo "  error_analysis_example  Complete error analysis demonstration"
+    echo "                          - Read-only gradient analysis"
+    echo "                          - Error data visualization"
+    echo "                          - Combined plot generation"
     echo ""
  
 }
@@ -101,8 +102,8 @@ case $TARGET in
             echo "  debug                   - Build and run debug executable with sanitizers"
             echo ""
             echo "Available CMake targets:"
-            echo "  visualizer_example      - Build and run visualizer example"
             echo "  plot_generator_example  - Build and run plot generator example"
+            echo "  error_analysis_example  - Build and run complete error analysis example"
             echo ""
             echo "Or specify any other CMake target name."
             exit 1

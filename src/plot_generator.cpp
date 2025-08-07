@@ -1,6 +1,7 @@
 #include "../include/plot_generator.h"
 #include "../include/geometry.h"
 #include "../include/utils.h"
+#include "../include/kernels.h"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -8,6 +9,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <map>
 
 PlotGenerator::PlotGenerator(const std::string& plotsDirectory, 
                              const std::string& pythonScriptPath)
@@ -64,6 +66,8 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
     double epsilon_max,
     int num_points,
     NormType normType,
+    const std::string& function_name,
+    const std::string& kernel_name,
     const std::string& trueGradArrayName,
     const std::string& computedGradArrayName) {
     
@@ -83,11 +87,17 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
         // Step 2: Generate plot filename
         std::string plot_filename = getNextPlotFilename();
         
-        // Step 3: Execute Python script
+        // Step 3: Execute Python script with metadata
+        std::string norm_name = (normType == NormType::L1) ? "L1" :
+                               (normType == NormType::L2) ? "L2" : "L∞";
+        
         std::ostringstream python_cmd;
         python_cmd << "python3 " << python_script_path 
                    << " " << csv_filename 
-                   << " -o " << plot_filename;
+                   << " -o " << plot_filename
+                   << " --function \"" << function_name << "\""
+                   << " --kernel \"" << kernel_name << "\""
+                   << " --norm \"" << norm_name << "\"";
         
         bool success = executeCommand(python_cmd.str());
         
@@ -132,11 +142,155 @@ std::string PlotGenerator::quickPlot(
     std::function<Vector3D(Vector3D)> grad_function,
     std::function<double(double)> kernel,
     double epsilon_min,
-    double epsilon_max) {
+    double epsilon_max,
+    const std::string& function_name,
+    const std::string& kernel_name) {
     
     PlotGenerator generator;
     return generator.generateEpsilonErrorPlot(
         mesh, function, grad_function, kernel,
-        epsilon_min, epsilon_max
+        epsilon_min, epsilon_max, 20, NormType::L2,
+        function_name, kernel_name
     );
+}
+
+std::string PlotGenerator::generateKernelComparisonPlot(
+    vtkSmartPointer<vtkPolyData> mesh,
+    std::function<double(Vector3D)> function,
+    std::function<Vector3D(Vector3D)> grad_function,
+    double epsilon_min,
+    double epsilon_max,
+    int num_points,
+    const std::string& function_name,
+    const std::string& trueGradArrayName,
+    const std::string& computedGradArrayName) {
+    
+    // Kernel dictionary mapping numbers to kernel functions and names
+    std::map<int, std::pair<std::function<double(double)>, std::string>> kernels = {
+        {2, {kernel_2, "kernel_2"}},
+        {4, {kernel_4, "kernel_4"}},
+        {6, {kernel_6, "kernel_6"}},
+        {8, {kernel_8, "kernel_8"}}
+    };
+    
+    try {
+        // Create visualizer  
+        GradientVisualizer visualizer(mesh, trueGradArrayName, computedGradArrayName);
+        
+        // Generate CSV files for each kernel
+        std::vector<std::string> csv_files;
+        std::map<int, double> best_epsilons;
+        std::map<int, double> best_errors;
+        
+        std::cout << "Generating epsilon error analysis for all kernels..." << std::endl;
+        
+        for (const auto& kernel_pair : kernels) {
+            int kernel_num = kernel_pair.first;
+            auto kernel_func = kernel_pair.second.first;
+            auto kernel_name = kernel_pair.second.second;
+            
+            std::string csv_filename = "temp_kernel_" + std::to_string(kernel_num) + 
+                                     "_analysis_" + std::to_string(getNextAvailablePlotNumber()) + ".csv";
+            csv_files.push_back(csv_filename);
+            
+            std::cout << "Processing " << kernel_name << "..." << std::endl;
+            visualizer.evaluateEpsilonError(
+                function, kernel_func, epsilon_min, epsilon_max,
+                num_points, csv_filename, NormType::L2
+            );
+            
+            // Find best epsilon and error for this kernel
+            std::ifstream file(csv_filename);
+            std::string line;
+            std::getline(file, line); // Skip header
+            
+            double best_error = std::numeric_limits<double>::max();
+            double best_eps = 0.0;
+            
+            while (std::getline(file, line)) {
+                std::istringstream iss(line);
+                std::string epsilon_str, error_str;
+                std::getline(iss, epsilon_str, ',');
+                std::getline(iss, error_str, ',');
+                
+                double eps = std::stod(epsilon_str);
+                double err = std::stod(error_str);
+                
+                if (err < best_error) {
+                    best_error = err;
+                    best_eps = eps;
+                }
+            }
+            file.close();
+            
+            best_epsilons[kernel_num] = best_eps;
+            best_errors[kernel_num] = best_error;
+        }
+        
+        // Generate plot filename
+        std::string plot_filename = getNextPlotFilename();
+        
+        // Create Python command for 2x2 subplot
+        std::ostringstream python_cmd;
+        python_cmd << "python3 plot_kernel_comparison.py";
+        
+        for (size_t i = 0; i < csv_files.size(); ++i) {
+            python_cmd << " " << csv_files[i];
+        }
+        
+        python_cmd << " -o " << plot_filename
+                   << " --function \"" << function_name << "\"";
+        
+        bool success = executeCommand(python_cmd.str());
+        
+        // Clean up CSV files
+        for (const std::string& csv_file : csv_files) {
+            std::string rm_cmd = "rm -f " + csv_file;
+            std::systemS(rm_cmd.c_str());
+        }
+        
+        // Output best results to console
+        std::cout << "\n=== KERNEL COMPARISON RESULTS ===" << std::endl;
+        std::cout << "Function: " << function_name << std::endl;
+        std::cout << "Epsilon range: [" << epsilon_min << ", " << epsilon_max << "]" << std::endl;
+        std::cout << "Number of points: " << num_points << std::endl;
+        std::cout << std::setfill('-') << std::setw(50) << "" << std::setfill(' ') << std::endl;
+        
+        double overall_best_error = std::numeric_limits<double>::max();
+        int best_kernel = 2;
+        
+        for (const auto& kernel_pair : kernels) {
+            int kernel_num = kernel_pair.first;
+            auto kernel_name = kernel_pair.second.second;
+            
+            double eps = best_epsilons[kernel_num];
+            double err = best_errors[kernel_num];
+            
+            std::cout << std::left << std::setw(10) << kernel_name 
+                      << " | Best ε: " << std::setw(8) << std::fixed << std::setprecision(6) << eps
+                      << " | L2 Error: " << std::scientific << std::setprecision(3) << err << std::endl;
+            
+            if (err < overall_best_error) {
+                overall_best_error = err;
+                best_kernel = kernel_num;
+            }
+        }
+        
+        std::cout << std::setfill('-') << std::setw(50) << "" << std::setfill(' ') << std::endl;
+        std::cout << "BEST METHOD: kernel_" << best_kernel 
+                  << " with ε=" << std::fixed << std::setprecision(6) << best_epsilons[best_kernel]
+                  << " (Error: " << std::scientific << std::setprecision(3) << overall_best_error << ")" << std::endl;
+        std::cout << "==================================\n" << std::endl;
+        
+        if (success) {
+            std::cout << "Kernel comparison plot generated: " << plot_filename << std::endl;
+            return plot_filename;
+        } else {
+            throw std::runtime_error("Failed to execute Python comparison plotting script");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error in generateKernelComparisonPlot: " << e.what() << std::endl;
+        throw;
+    }
 }

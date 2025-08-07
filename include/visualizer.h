@@ -35,9 +35,8 @@ class GradientVisualizer {
                        const std::string &trueGradArrayName = "f true grad",
                        const std::string &computedGradArrayName = "Grad");
 
-    // Main functionality methods
-    void computeGradientDifference(
-        const std::string &outputArrayName = "GradientDifference");
+    // Main functionality methods (read-only, don't modify mesh)
+    std::vector<Vector3D> computeGradientDifferences();
 
     // Computes norm over collection of per-cell Euclidean error norms
     // normType specifies how to aggregate the individual cell errors:
@@ -45,10 +44,8 @@ class GradientVisualizer {
     // error
     double computeErrorNorm(NormType normType);
 
-    // Computes Euclidean norm of error vector per cell and stores in array
-    void
-    computeErrorNormPerCell(NormType normType,
-                            const std::string &outputArrayName = "ErrorNorm");
+    // Computes Euclidean norm of error vector per cell and returns vector
+    std::vector<double> computeErrorNormsPerCell();
 
     // VTK visualization output methods
     void saveVisualization(const std::string &filename);
@@ -67,6 +64,10 @@ class GradientVisualizer {
     void printErrorStatistics();
     void setTrueGradientArrayName(const std::string &name);
     void setComputedGradientArrayName(const std::string &name);
+    
+    // Mesh modification methods
+    void add_errors_in_mesh(const std::string &differenceArrayName = "GradientDifference",
+                           const std::string &errorNormArrayName = "ErrorNorm");
 };
 
 #endif
