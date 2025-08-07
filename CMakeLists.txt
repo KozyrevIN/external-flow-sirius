@@ -5,6 +5,17 @@ project(external-flow)
 # Export compile commands for IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Build performance optimizations
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # Searching for dependencies
 find_package(VTK
 COMPONENTS
@@ -23,8 +34,8 @@ set(SOURCES
     src/geometry.cpp
 )
 
-#set(CMAKE_CXX_FLAGS "-O2")
-
+# Release build optimizations for main target
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
 
 add_executable(main ${SOURCES})
 

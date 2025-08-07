@@ -5,6 +5,7 @@
 #include <vtkUnstructuredGridReader.h>
 #include <vtkPolyDataWriter.h>
 #include <vtkCellData.h>
+#include <vtkDataSetSurfaceFilter.h>
 #include <iostream>
 
 vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
@@ -29,13 +30,17 @@ vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
         std::cout << "------------------------------------------" << std::endl;
     }
 
-    // This filter extracts the surface geometry from any dataset.
-    auto geometryFilter = vtkSmartPointer<vtkGeometryFilter>::New();
-    geometryFilter->SetInputData(grid);
-    geometryFilter->Update();
+    // Use DataSetSurfaceFilter instead of GeometryFilter to avoid memory leak
+    auto surfaceFilter = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    surfaceFilter->SetInputData(grid);
+    surfaceFilter->Update();
 
-    // The output of the filter is the vtkPolyData
-    vtkSmartPointer<vtkPolyData> polydata = geometryFilter->GetOutput();
+    // Create a deep copy of the output
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    polydata->DeepCopy(surfaceFilter->GetOutput());
+    
+    // Clean up filter connections
+    surfaceFilter->SetInputData(nullptr);
 
     return polydata;
 }

@@ -8,10 +8,14 @@
 TARGET=${1:-main}
 BUILD_DIR="build"
 
+# Performance optimizations
+export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
+export MAKEFLAGS="-j$(nproc)"
+
 case $TARGET in
     "main")
         echo "Building and running main target..."
-        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target main
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target main -- -j$(nproc)
         if [ $? -eq 0 ]; then
             echo "Running main executable:"
             ./$BUILD_DIR/main
@@ -22,9 +26,10 @@ case $TARGET in
         ;;
     "debug")
         echo "Building and running debug target with sanitizers..."
-        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target debug
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target debug -- -j$(nproc)
         if [ $? -eq 0 ]; then
             echo "Running debug executable with sanitizers:"
+            export LSAN_OPTIONS="suppressions=vtk_leak_suppression.txt"
             export ASAN_OPTIONS="abort_on_error=1:detect_leaks=1:print_stats=1"
             export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
             ./$BUILD_DIR/debug
@@ -41,7 +46,7 @@ case $TARGET in
     "rebuild")
         echo "Rebuilding all targets..."
         rm -rf $BUILD_DIR
-        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR -- -j$(nproc)
         ;;
     *)
         echo "Usage: $0 <target>"

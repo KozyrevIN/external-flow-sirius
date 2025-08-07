@@ -20,10 +20,10 @@ int main(int argc, char *argv[]) {
     // Сначала создаем необходимые атрибуты
     attach_center_to_cells(mesh);
     attach_area(mesh);
-    compute_f_true_grad(mesh, grad_f_2);
-    attach_f(mesh, f_2);
+    // compute_f_true_grad(mesh, grad_f_2);
+    attach_f(mesh, f_1);
 
-    grad_calculator grad_calc(f_2, 0.1, kernel_2);
+    grad_calculator grad_calc(f_1, 0.1, kernel_2);
     grad_calc.attach_grad(mesh);
 
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();

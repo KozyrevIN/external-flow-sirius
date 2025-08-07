@@ -2,7 +2,7 @@
 # Layer 1: Build & Install Directories
 # This is the primary defense. Assumes an out-of-source build.
 # =========================================================================
-
+cmake-build-debug
 [Bb]uild/
 build-*/
 [Ii]nstall/
