@@ -12,12 +12,14 @@ Vector3D grad_f_1(const Vector3D &vec) { return {1.0, 0, 0}; }
 
 // f_2(x) = cos(\theta)
 double f_2(const Vector3D &vec) {
-    return -vec.x / std::sqrt(vec.x * vec.x + vec.z * vec.z);
+    return -vec.x / std::sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
 Vector3D grad_f_2(const Vector3D &vec) {
-    double denominator = std::pow(vec.x * vec.x + vec.z * vec.z, 1.5);
-    return {-vec.z * vec.z / denominator, 0, vec.x * vec.z / denominator};
+    double denominator =
+        std::pow(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z, 1.5);
+    return {-(vec.z * vec.z + vec.y * vec.y) / denominator,
+            vec.x * vec.y / denominator, vec.x * vec.z / denominator};
 }
 
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
@@ -47,8 +49,9 @@ void attach_f(vtkSmartPointer<vtkPolyData> mesh,
     mesh->GetCellData()->AddArray(f_vals);
 }
 
-vtkSmartPointer<vtkDoubleArray> compute_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
-                                                   const std::function<Vector3D(Vector3D)> &f_grad) {
+vtkSmartPointer<vtkDoubleArray>
+compute_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
+                    const std::function<Vector3D(Vector3D)> &f_grad) {
 
     vtkSmartPointer<vtkDoubleArray> vectorArray =
         vtkSmartPointer<vtkDoubleArray>::New();
