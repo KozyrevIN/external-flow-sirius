@@ -25,17 +25,21 @@ auto load_and_init_mash(){
     attach_area(mesh);
     return mesh;
 }
+
 auto write_mesh(vtkSmartPointer<vtkPolyData> mesh){
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(mesh_out_path.c_str());
     writer->SetInputData(mesh);
     writer->Write();
 }
+void add_grads(vtkSmartPointer<vtkPolyData> mesh){
+    attach_f_true_grad(mesh, grad_f_1);
+    grad_calculator grad_calc(f_1, 0.25, kernel_2);
+    grad_calc.attach_grad(mesh);
+}
 int main(int argc, char *argv[]) {
     vtkSmartPointer<vtkPolyData> mesh = load_and_init_mash();
-
-    grad_calculator grad_calc(f_1, 0.1, kernel_2);
-    grad_calc.attach_grad(mesh);
-
+    add_grads(mesh);
     write_mesh(mesh);
+
 }

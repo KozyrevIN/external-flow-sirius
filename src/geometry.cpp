@@ -76,12 +76,11 @@ Vector3D calc_normal(vtkCell *cell) {
 
     return normal_vector;
 }
-Vector3D calc_projection(vtkCell *cell, Vector3D *vector) {
+Vector3D calc_rectangle_projection(double* point1, double* point2, double* point3, Vector3D *vector) {
     // Получаем точки треугольника
-    double p0[3], p1[3], p2[3];
-    cell->GetPoints()->GetPoint(0, p0);
-    cell->GetPoints()->GetPoint(1, p1);
-    cell->GetPoints()->GetPoint(2, p2);
+    double p0[3] = {point1[0], point1[1], point1[2]};
+    double p1[3] = {point2[0], point2[1], point2[2]};
+    double p2[3] = {point3[0], point3[1], point3[2]};
 
     // Вычисляем нормаль треугольника через метод vtkTriangle
     double normal[3];
@@ -98,6 +97,14 @@ Vector3D calc_projection(vtkCell *cell, Vector3D *vector) {
     projection.z = vector->z - dot_product * normal[2];
 
     return projection;
+}
+Vector3D calc_projection(vtkCell *cell, Vector3D *vector) {
+    // Получаем точки треугольника
+    double p0[3], p1[3], p2[3];
+    cell->GetPoints()->GetPoint(0, p0);
+    cell->GetPoints()->GetPoint(1, p1);
+    cell->GetPoints()->GetPoint(2, p2);
+    return calc_rectangle_projection(p0, p1, p2, vector);
 }
 double calc_area(vtkCell *cell) {
     // Получаем точки треугольника
@@ -140,10 +147,9 @@ grad_calculator::grad_calculator(std::function<double(Vector3D)> f,
     : f(f), epsilon(epsilon), kernel(kernel) {}
 
 Vector3D grad_calculator::calc_grad(vtkSmartPointer<vtkPolyData> polyData,
-                                    vtkIdType cellId) {
+                                    vtkIdType cellId) const {
     vtkCell *cell = polyData->GetCell(cellId);
     Vector3D grad(0.0, 0.0, 0.0);
-    double area = getAttributeArea(cellId, polyData);
     Vector3D center = getCenter(cellId, polyData);
     double f_value = f(center);
     for (vtkIdType i = 0; i < cell->GetNumberOfPoints(); i++) {
@@ -153,7 +159,7 @@ Vector3D grad_calculator::calc_grad(vtkSmartPointer<vtkPolyData> polyData,
         double distance =
             sqrt(pow(center_i.x - center.x, 2) + pow(center_i.y - center.y, 2) +
                  pow(center_i.z - center.z, 2));
-        double coeff = (f_value_i - f_value) * area_i * kernel(distance);
+        double coeff = (f_value_i - f_value) * area_i * kernel(distance/epsilon);
         Vector3D diff(center_i.x - center.x, center_i.y - center.y,
                       center_i.z - center.z);
         Vector3D projection = calc_projection(cell, &diff);

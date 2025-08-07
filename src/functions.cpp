@@ -78,3 +78,9 @@ compute_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
 
     return vectorArray;
 }
+
+void attach_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
+                        const std::function<Vector3D(Vector3D)> &f_grad) {
+    vtkSmartPointer<vtkDoubleArray> true_grad_array = compute_f_true_grad(mesh, f_grad);
+    mesh->GetCellData()->AddArray(true_grad_array);
+}
