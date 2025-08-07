@@ -7,6 +7,10 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkUnstructuredGridReader.h>
+#include <vtkXMLPolyDataWriter.h>
+
+#include "../include/functions.h"
+#include "../include/geometry.h"
 
 
 vtkSmartPointer<vtkPolyData> load_mesh(std::string filename, bool verbose) {
@@ -69,4 +73,23 @@ Vector3D getCenter(vtkIdType cellId, vtkPolyData *polyData) {
 double getAttributeArea(vtkIdType cellId, vtkPolyData *polyData) {
     vtkDataArray *areaArray = polyData->GetCellData()->GetArray("Area");
     return areaArray->GetTuple1(cellId);
+}
+
+vtkSmartPointer<vtkPolyData> load_and_init_mash(std::string mesh_in_path){
+    vtkSmartPointer<vtkPolyData> mesh = load_mesh(mesh_in_path, false);
+    attach_center_to_cells(mesh);
+    attach_area(mesh);
+    return mesh;
+}
+
+void write_mesh(vtkSmartPointer<vtkPolyData> mesh, std::string mesh_out_path){
+    auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+    writer->SetFileName(mesh_out_path.c_str());
+    writer->SetInputData(mesh);
+    writer->Write();
+}
+void add_grads(vtkSmartPointer<vtkPolyData> mesh, std::function<double(Vector3D)> f, std::function<Vector3D(Vector3D)> grad_f, double epsilon, std::function<double(double)> kernel){
+    attach_f_true_grad(mesh, grad_f);
+    grad_calculator grad_calc(f, epsilon, kernel);
+    grad_calc.attach_grad(mesh);
 }

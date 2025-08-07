@@ -2,8 +2,11 @@
 
 # Script to build and run different targets
 # Usage: ./scripts/run <target>
-# Example: ./scripts/run main
-#          ./scripts/run debug
+# Examples: ./scripts/run main
+#           ./scripts/run debug
+#           ./scripts/run visualizer_example
+#           ./scripts/run plot_generator_example
+#           ./scripts/run <any_cmake_target>
 
 TARGET=${1:-main}
 BUILD_DIR="build"
@@ -12,7 +15,44 @@ BUILD_DIR="build"
 export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
 export MAKEFLAGS="-j$(nproc)"
 
+# Function to display help information
+show_help() {
+    echo "USAGE:"
+    echo "  ./scripts/run [TARGET|OPTION]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help    Show this help message"
+    echo ""
+    echo "BUILT-IN TARGETS:"
+    echo "  main          Build and run main executable (optimized)"
+    echo "                - Uses function f_2 and gradient calculation"
+    echo "                - Outputs processed mesh to meshes/sphere_642_w_fields.vtp"
+    echo ""
+    echo "  debug         Build and run debug executable with sanitizers"
+    echo "                - AddressSanitizer + UndefinedBehaviorSanitizer"
+    echo "                - Memory leak detection with VTK suppressions"
+    echo "                - Full debug symbols and optimization disabled"
+    echo ""
+
+    echo ""
+    echo "EXAMPLE TARGETS:"
+    echo "  visualizer_example      Test GradientVisualizer functionality"
+    echo "                          - Performs epsilon error analysis"
+    echo "                          - Generates CSV data for plotting"
+    echo ""
+    echo "  plot_generator_example  Test PlotGenerator functionality"
+    echo "                          - Generates multiple PNG plots automatically"
+    echo "                          - Tests different kernels and parameters"
+    echo "                          - Outputs to plots/ directory"
+    echo ""
+ 
+}
+
 case $TARGET in
+    "-h"|"--help")
+        show_help
+        exit 0
+        ;;
     "main")
         echo "Building and running main target..."
         cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target main -- -j$(nproc)
@@ -38,23 +78,34 @@ case $TARGET in
             exit 1
         fi
         ;;
-    "clean")
-        echo "Cleaning build directory..."
-        rm -rf $BUILD_DIR
-        echo "Build directory cleaned."
-        ;;
-    "rebuild")
-        echo "Rebuilding all targets..."
-        rm -rf $BUILD_DIR
-        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR -- -j$(nproc)
-        ;;
+
     *)
-        echo "Usage: $0 <target>"
-        echo "Available targets:"
-        echo "  main     - Build and run main executable"
-        echo "  debug    - Build and run debug executable with sanitizers"
-        echo "  clean    - Clean build directory"
-        echo "  rebuild  - Clean and rebuild all targets"
-        exit 1
+        # Try to build and run the target as a generic executable
+        echo "Attempting to build and run target: $TARGET"
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target $TARGET -- -j$(nproc)
+        if [ $? -eq 0 ]; then
+            # Check if executable exists in build directory
+            if [ -f "./$BUILD_DIR/$TARGET" ]; then
+                echo "Running $TARGET executable:"
+                ./$BUILD_DIR/$TARGET
+            else
+                echo "Built successfully, but executable not found at ./$BUILD_DIR/$TARGET"
+                echo "This might be a library target or the executable has a different name."
+            fi
+        else
+            echo "Build failed for target: $TARGET"
+            echo ""
+            echo "Usage: $0 <target>"
+            echo "Built-in targets:"
+            echo "  main                    - Build and run main executable"
+            echo "  debug                   - Build and run debug executable with sanitizers"
+            echo ""
+            echo "Available CMake targets:"
+            echo "  visualizer_example      - Build and run visualizer example"
+            echo "  plot_generator_example  - Build and run plot generator example"
+            echo ""
+            echo "Or specify any other CMake target name."
+            exit 1
+        fi
         ;;
 esac

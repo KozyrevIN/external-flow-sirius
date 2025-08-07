@@ -68,3 +68,6 @@ This is a C++ computational fluid dynamics project focused on flow around bodies
 - VTK memory management requires explicit cleanup in some cases
 - All mesh operations work with cell-based data structures
 - Kernel epsilon parameter controls the locality of gradient calculations
+
+## Development Workflow
+- **Target Management**: всегда после добавления нового таргета добавляй его в script/run

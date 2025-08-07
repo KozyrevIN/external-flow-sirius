@@ -1,6 +1,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <vtkCellData.h>
+
 #include "../include/functions.h"
 #include "../include/geometry.h"
 #include "../include/kernels.h"
@@ -20,6 +22,10 @@ int main(int argc, char *argv[]) {
     auto true_grad_array = compute_f_true_grad(mesh, grad_f_1);
     mesh->GetCellData()->AddArray(true_grad_array);
     attach_f(mesh, f_1);
+
+    // Compute gradient with grad_calculator to have "Grad" array
+    grad_calculator grad_calc(f_1, 0.25, kernel_2);
+    grad_calc.attach_grad(mesh);
 
     try {
         // Create visualizer
