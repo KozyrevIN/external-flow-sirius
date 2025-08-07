@@ -32,6 +32,7 @@ set(SOURCES
     src/utils.cpp
     src/functions.cpp
     src/geometry.cpp
+    src/visualizer.cpp
 )
 
 # Release build optimizations for main target
