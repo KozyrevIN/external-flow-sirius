@@ -12,7 +12,6 @@ COMPONENTS
   CommonDataModel
   IOXML
   IOLegacy
-  IOCore
   FiltersGeometry
 )
 

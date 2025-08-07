@@ -20,10 +20,19 @@ int main(int argc, char *argv[]) {
     // Сначала создаем необходимые атрибуты
     attach_center_to_cells(mesh);
     attach_area(mesh);
+<<<<<<< HEAD
     attach_f_true_grad(mesh, grad_f_2);
+=======
+    attach_f(mesh, f_2);
+    
+<<<<<<< HEAD
+    vtkSmartPointer<vtkDoubleArray> true_grad = compute_f_true_grad(mesh, grad_f_2);
+=======
+>>>>>>> 34d1bfddc9a3258ccdacedac11015b3fa342c10a
     // Затем вычисляем градиент
     grad_calculator grad_calc(f_2, 1.0, kernel_2);
     grad_calc.attach_grad(mesh);
+>>>>>>> c84f187e2fbd0caf7b56df4df913dc83c867f89a
 
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(mesh_out_path.c_str());
