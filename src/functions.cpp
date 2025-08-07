@@ -22,6 +22,13 @@ Vector3D grad_f_2(const Vector3D &vec) {
             vec.x * vec.y / denominator, vec.x * vec.z / denominator};
 }
 
+double f_3(const Vector3D &vec) {
+    return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+}
+
+Vector3D grad_f_3(const Vector3D &vec) {
+    return {2 * vec.x, 2 * vec.y, 2 * vec.z};
+}
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
               const std::function<double(Vector3D)> &f) {
 

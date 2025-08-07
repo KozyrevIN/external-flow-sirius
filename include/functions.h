@@ -19,6 +19,10 @@ double f_2(const Vector3D &vec);
 
 Vector3D grad_f_2(const Vector3D &vec);
 
+double f_3(const Vector3D &vec);
+
+Vector3D grad_f_3(const Vector3D &vec);
+
 // functions to attach f anf grad f to mesh
 
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
