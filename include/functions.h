@@ -24,7 +24,8 @@ Vector3D grad_f_2(const Vector3D &vec);
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
               const std::function<double(Vector3D)> &f);
 
-vtkSmartPointer<vtkDoubleArray> compute_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
-                                                   const std::function<Vector3D(Vector3D)> &f_grad);
+vtkSmartPointer<vtkDoubleArray>
+compute_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
+                    const std::function<Vector3D(Vector3D)> &f_grad);
 
 #endif

@@ -1,186 +1,199 @@
 #include "../include/visualizer.h"
 #include "../include/utils.h"
-#include <vtkCellData.h>
-#include <vtkXMLPolyDataWriter.h>
-#include <vtkDoubleArray.h>
-#include <iostream>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkXMLPolyDataWriter.h>
+
 
 GradientVisualizer::GradientVisualizer(vtkSmartPointer<vtkPolyData> mesh,
-                                     const std::string& trueGradArrayName,
-                                     const std::string& computedGradArrayName)
-    : mesh(mesh), true_grad_array_name(trueGradArrayName), computed_grad_array_name(computedGradArrayName) {
-    
+                                       const std::string &trueGradArrayName,
+                                       const std::string &computedGradArrayName)
+    : mesh(mesh), true_grad_array_name(trueGradArrayName),
+      computed_grad_array_name(computedGradArrayName) {
+
     if (!mesh) {
         throw std::runtime_error("Mesh cannot be null");
     }
-    
+
     // Verify that the required arrays exist
     if (!mesh->GetCellData()->GetArray(trueGradArrayName.c_str())) {
-        throw std::runtime_error("True gradient array '" + trueGradArrayName + "' not found in mesh");
+        throw std::runtime_error("True gradient array '" + trueGradArrayName +
+                                 "' not found in mesh");
     }
-    
+
     if (!mesh->GetCellData()->GetArray(computedGradArrayName.c_str())) {
-        throw std::runtime_error("Computed gradient array '" + computedGradArrayName + "' not found in mesh");
+        throw std::runtime_error("Computed gradient array '" +
+                                 computedGradArrayName + "' not found in mesh");
     }
 }
 
-Vector3D GradientVisualizer::getVectorFromArray(vtkDoubleArray* array, vtkIdType cellId) {
+Vector3D GradientVisualizer::getVectorFromArray(vtkDoubleArray *array,
+                                                vtkIdType cellId) {
     double vec[3];
     array->GetTuple(cellId, vec);
     return Vector3D(vec[0], vec[1], vec[2]);
 }
 
-void GradientVisualizer::setVectorToArray(vtkDoubleArray* array, vtkIdType cellId, const Vector3D& vec) {
+void GradientVisualizer::setVectorToArray(vtkDoubleArray *array,
+                                          vtkIdType cellId,
+                                          const Vector3D &vec) {
     double vecArray[3] = {vec.x, vec.y, vec.z};
     array->SetTuple(cellId, vecArray);
 }
 
-double GradientVisualizer::computeVectorNorm(const Vector3D& vec, NormType normType) {
+double GradientVisualizer::computeVectorNorm(const Vector3D &vec,
+                                             NormType normType) {
     // Individual vector norm is always Euclidean (L2)
     return std::sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
-void GradientVisualizer::computeGradientDifference(const std::string& outputArrayName) {
-    vtkDoubleArray* trueGradArray = vtkDoubleArray::SafeDownCast(
+void GradientVisualizer::computeGradientDifference(
+    const std::string &outputArrayName) {
+    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
-    vtkDoubleArray* computedGradArray = vtkDoubleArray::SafeDownCast(
+    vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(computed_grad_array_name.c_str()));
-    
+
     if (!trueGradArray || !computedGradArray) {
         throw std::runtime_error("Failed to retrieve gradient arrays");
     }
-    
+
     vtkIdType numCells = mesh->GetNumberOfCells();
-    
+
     // Create output array for gradient differences
-    vtkSmartPointer<vtkDoubleArray> diffArray = vtkSmartPointer<vtkDoubleArray>::New();
+    vtkSmartPointer<vtkDoubleArray> diffArray =
+        vtkSmartPointer<vtkDoubleArray>::New();
     diffArray->SetNumberOfComponents(3);
     diffArray->SetNumberOfTuples(numCells);
     diffArray->SetName(outputArrayName.c_str());
-    
+
     // Compute differences for each cell
     for (vtkIdType i = 0; i < numCells; i++) {
         Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
         Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-        
-        Vector3D difference(
-            trueGrad.x - computedGrad.x,
-            trueGrad.y - computedGrad.y,
-            trueGrad.z - computedGrad.z
-        );
-        
+
+        Vector3D difference(trueGrad.x - computedGrad.x,
+                            trueGrad.y - computedGrad.y,
+                            trueGrad.z - computedGrad.z);
+
         setVectorToArray(diffArray, i, difference);
     }
-    
+
     // Add the difference array to mesh
     mesh->GetCellData()->AddArray(diffArray);
-    
-    std::cout << "Computed gradient differences for " << numCells << " cells" << std::endl;
+
+    std::cout << "Computed gradient differences for " << numCells << " cells"
+              << std::endl;
 }
 
 double GradientVisualizer::computeErrorNorm(NormType normType) {
-    vtkDoubleArray* trueGradArray = vtkDoubleArray::SafeDownCast(
+    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
-    vtkDoubleArray* computedGradArray = vtkDoubleArray::SafeDownCast(
+    vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(computed_grad_array_name.c_str()));
-    
+
     if (!trueGradArray || !computedGradArray) {
         throw std::runtime_error("Failed to retrieve gradient arrays");
     }
-    
+
     vtkIdType numCells = mesh->GetNumberOfCells();
     std::vector<double> cellErrors(numCells);
-    
+
     // First compute Euclidean norm of error vector for each cell
     for (vtkIdType i = 0; i < numCells; i++) {
         Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
         Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-        
-        Vector3D errorVec(
-            trueGrad.x - computedGrad.x,
-            trueGrad.y - computedGrad.y,
-            trueGrad.z - computedGrad.z
-        );
-        
+
+        Vector3D errorVec(trueGrad.x - computedGrad.x,
+                          trueGrad.y - computedGrad.y,
+                          trueGrad.z - computedGrad.z);
+
         // Individual vector norm is always Euclidean
-        cellErrors[i] = std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y + errorVec.z * errorVec.z);
+        cellErrors[i] =
+            std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y +
+                      errorVec.z * errorVec.z);
     }
-    
+
     // Now compute the specified norm over the collection of cell errors
     switch (normType) {
-        case NormType::L1: {
-            double sum = 0.0;
-            for (double error : cellErrors) {
-                sum += error;
-            }
-            return sum;
+    case NormType::L1: {
+        double sum = 0.0;
+        for (double error : cellErrors) {
+            sum += error;
         }
-        case NormType::L2: {
-            double sumSquares = 0.0;
-            for (double error : cellErrors) {
-                sumSquares += error * error;
-            }
-            return std::sqrt(sumSquares);
+        return sum;
+    }
+    case NormType::L2: {
+        double sumSquares = 0.0;
+        for (double error : cellErrors) {
+            sumSquares += error * error;
         }
-        case NormType::LINF: {
-            double maxError = 0.0;
-            for (double error : cellErrors) {
-                maxError = std::max(maxError, error);
-            }
-            return maxError;
+        return std::sqrt(sumSquares);
+    }
+    case NormType::LINF: {
+        double maxError = 0.0;
+        for (double error : cellErrors) {
+            maxError = std::max(maxError, error);
         }
-        default:
-            throw std::runtime_error("Unknown norm type");
+        return maxError;
+    }
+    default:
+        throw std::runtime_error("Unknown norm type");
     }
 }
 
-void GradientVisualizer::computeErrorNormPerCell(NormType normType, const std::string& outputArrayName) {
-    vtkDoubleArray* trueGradArray = vtkDoubleArray::SafeDownCast(
+void GradientVisualizer::computeErrorNormPerCell(
+    NormType normType, const std::string &outputArrayName) {
+    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
-    vtkDoubleArray* computedGradArray = vtkDoubleArray::SafeDownCast(
+    vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
         mesh->GetCellData()->GetArray(computed_grad_array_name.c_str()));
-    
+
     if (!trueGradArray || !computedGradArray) {
         throw std::runtime_error("Failed to retrieve gradient arrays");
     }
-    
+
     vtkIdType numCells = mesh->GetNumberOfCells();
-    
+
     // Create output array for per-cell error norms
-    vtkSmartPointer<vtkDoubleArray> errorArray = vtkSmartPointer<vtkDoubleArray>::New();
+    vtkSmartPointer<vtkDoubleArray> errorArray =
+        vtkSmartPointer<vtkDoubleArray>::New();
     errorArray->SetNumberOfComponents(1);
     errorArray->SetNumberOfTuples(numCells);
     errorArray->SetName(outputArrayName.c_str());
-    
+
     for (vtkIdType i = 0; i < numCells; i++) {
         Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
         Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-        
-        Vector3D errorVec(
-            trueGrad.x - computedGrad.x,
-            trueGrad.y - computedGrad.y,
-            trueGrad.z - computedGrad.z
-        );
-        
+
+        Vector3D errorVec(trueGrad.x - computedGrad.x,
+                          trueGrad.y - computedGrad.y,
+                          trueGrad.z - computedGrad.z);
+
         // Individual vector norm is always Euclidean (L2)
-        double cellError = std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y + errorVec.z * errorVec.z);
+        double cellError =
+            std::sqrt(errorVec.x * errorVec.x + errorVec.y * errorVec.y +
+                      errorVec.z * errorVec.z);
         errorArray->SetTuple1(i, cellError);
     }
-    
+
     // Add the error array to mesh
     mesh->GetCellData()->AddArray(errorArray);
-    
-    std::cout << "Computed per-cell Euclidean error norms for " << numCells << " cells" << std::endl;
+
+    std::cout << "Computed per-cell Euclidean error norms for " << numCells
+              << " cells" << std::endl;
 }
 
-void GradientVisualizer::saveVisualization(const std::string& filename) {
-    vtkSmartPointer<vtkXMLPolyDataWriter> writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+void GradientVisualizer::saveVisualization(const std::string &filename) {
+    vtkSmartPointer<vtkXMLPolyDataWriter> writer =
+        vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(filename.c_str());
     writer->SetInputData(mesh);
     writer->Write();
-    
+
     std::cout << "Saved visualization to: " << filename << std::endl;
 }
 
@@ -189,26 +202,28 @@ void GradientVisualizer::printErrorStatistics() {
         double l1Error = computeErrorNorm(NormType::L1);
         double l2Error = computeErrorNorm(NormType::L2);
         double linfError = computeErrorNorm(NormType::LINF);
-        
+
         std::cout << "\n=== Gradient Error Statistics ===" << std::endl;
         std::cout << "L1 norm:  " << l1Error << std::endl;
         std::cout << "L2 norm:  " << l2Error << std::endl;
         std::cout << "L∞ norm:    " << linfError << std::endl;
-        
+
         vtkIdType numCells = mesh->GetNumberOfCells();
-        std::cout << "Average L1 error per cell: " << l1Error / numCells << std::endl;
-        std::cout << "Average L2 error per cell: " << l2Error / numCells << std::endl;
+        std::cout << "Average L1 error per cell: " << l1Error / numCells
+                  << std::endl;
+        std::cout << "Average L2 error per cell: " << l2Error / numCells
+                  << std::endl;
         std::cout << "==================================" << std::endl;
-        
-    } catch (const std::exception& e) {
+
+    } catch (const std::exception &e) {
         std::cerr << "Error computing statistics: " << e.what() << std::endl;
     }
 }
 
-void GradientVisualizer::setTrueGradientArrayName(const std::string& name) {
+void GradientVisualizer::setTrueGradientArrayName(const std::string &name) {
     true_grad_array_name = name;
 }
 
-void GradientVisualizer::setComputedGradientArrayName(const std::string& name) {
+void GradientVisualizer::setComputedGradientArrayName(const std::string &name) {
     computed_grad_array_name = name;
 }
