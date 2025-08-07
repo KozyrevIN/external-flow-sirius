@@ -1,7 +1,10 @@
 #include "../include/visualizer.h"
+#include "../include/geometry.h"
 #include "../include/utils.h"
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <vtkCellData.h>
 #include <vtkDoubleArray.h>
@@ -206,7 +209,7 @@ void GradientVisualizer::printErrorStatistics() {
         std::cout << "\n=== Gradient Error Statistics ===" << std::endl;
         std::cout << "L1 norm:  " << l1Error << std::endl;
         std::cout << "L2 norm:  " << l2Error << std::endl;
-        std::cout << "L∞ norm:    " << linfError << std::endl;
+        std::cout << "L∞ norm:  " << linfError << std::endl;
 
         vtkIdType numCells = mesh->GetNumberOfCells();
         std::cout << "Average L1 error per cell: " << l1Error / numCells
@@ -226,4 +229,70 @@ void GradientVisualizer::setTrueGradientArrayName(const std::string &name) {
 
 void GradientVisualizer::setComputedGradientArrayName(const std::string &name) {
     computed_grad_array_name = name;
+}
+
+void GradientVisualizer::evaluateEpsilonError(
+    std::function<double(Vector3D)> function,
+    std::function<double(double)> kernel,
+    double epsilon_min,
+    double epsilon_max,
+    int num_points,
+    const std::string& csv_filename,
+    NormType normType) {
+    
+    std::ofstream csv_file(csv_filename);
+    if (!csv_file.is_open()) {
+        throw std::runtime_error("Could not open CSV file: " + csv_filename);
+    }
+    
+    // Write CSV header
+    std::string norm_name;
+    switch (normType) {
+        case NormType::L1: norm_name = "L1"; break;
+        case NormType::L2: norm_name = "L2"; break;
+        case NormType::LINF: norm_name = "Linf"; break;
+    }
+    csv_file << "epsilon," << norm_name << "_error\n";
+    
+    std::cout << "Evaluating gradient error for epsilon range [" 
+              << epsilon_min << ", " << epsilon_max << "] with " 
+              << num_points << " points..." << std::endl;
+    
+    // Store original computed gradient array name to restore later
+    std::string original_computed_name = computed_grad_array_name;
+    
+    for (int i = 0; i < num_points; i++) {
+        // Calculate epsilon value (logarithmic spacing for better coverage)
+        double epsilon = epsilon_min * std::pow(epsilon_max / epsilon_min, 
+                                               static_cast<double>(i) / (num_points - 1));
+        
+        // Create grad_calculator with current epsilon
+        grad_calculator grad_calc(function, epsilon, kernel);
+        
+        // Create a temporary mesh copy to avoid modifying the original
+        vtkSmartPointer<vtkPolyData> temp_mesh = vtkSmartPointer<vtkPolyData>::New();
+        temp_mesh->DeepCopy(mesh);
+        
+        // Compute gradient with current epsilon
+        grad_calc.attach_grad(temp_mesh);
+        
+        // Temporarily update computed gradient array name for error calculation
+        std::string temp_computed_name = "Grad";
+        computed_grad_array_name = temp_computed_name;
+        
+        // Create temporary visualizer for this epsilon
+        GradientVisualizer temp_visualizer(temp_mesh, true_grad_array_name, temp_computed_name);
+        
+        // Compute error norm
+        double error = temp_visualizer.computeErrorNorm(normType);
+        
+        // Write to CSV
+        csv_file << std::fixed << std::setprecision(6) << epsilon << "," << error << "\n";
+    }
+    
+    // Restore original computed gradient array name
+    computed_grad_array_name = original_computed_name;
+    
+    csv_file.close();
+    std::cout << "Epsilon error analysis saved to: " << csv_filename << std::endl;
 }

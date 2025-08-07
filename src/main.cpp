@@ -50,6 +50,18 @@ int main(int argc, char *argv[]) {
         // Print error statistics
         visualizer.printErrorStatistics();
 
+        // Evaluate epsilon error across a range of values
+        std::cout << "\n=== Epsilon Error Analysis ===" << std::endl;
+        visualizer.evaluateEpsilonError(
+            f_1,           // function
+            kernel_2,      // kernel function  
+            0.01,          // epsilon_min
+            10.0,           // epsilon_max
+            30,            // num_points
+            "out/epsilon_error_analysis.csv",  // csv filename
+            NormType::L2   // norm type
+        );
+
         // Save visualization with all error analysis
         visualizer.saveVisualization(mesh_out_path);
 
