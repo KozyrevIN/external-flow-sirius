@@ -1,10 +1,9 @@
 #include "vector_3d.h"
 #include <functional>
+#include <iostream>
 #include <vtkCell.h>
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
-#include <functional>
-#include "vector_3d.h"
 
 void get_cell_center(vtkCell *cell, Vector3D *center);
 void attach_center_to_cells(vtkPolyData *polyData);

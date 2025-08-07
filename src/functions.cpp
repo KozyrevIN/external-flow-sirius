@@ -55,7 +55,6 @@ void attach_f_true_grad(vtkSmartPointer<vtkPolyData> mesh,
     vectorArray->SetName("f true grad");
     vectorArray->SetNumberOfComponents(3);
     vectorArray->SetNumberOfTuples(mesh->GetNumberOfCells());
-
     vtkSmartPointer<vtkDataArray> centers =
         mesh->GetCellData()->GetArray("CellCenters");
 

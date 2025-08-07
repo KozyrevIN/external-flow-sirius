@@ -29,7 +29,6 @@ void get_cell_center(vtkCell *cell, Vector3D *center) {
     delete[] weights;
 }
 void attach_center_to_cells(vtkPolyData* polyData) {
-void attach_center_to_cells(vtkPolyData* polyData) {
     vtkIdType numCells = polyData->GetNumberOfCells();
     
     // Создаем массив для хранения центров ячеек
@@ -131,7 +130,6 @@ void attach_area(vtkPolyData* polyData) {
     polyData->GetCellData()->AddArray(areaArray);
     
     // Отладочная информация
-    std::cout << "Добавлен массив площадей ячеек: " << numCells << " площадей" << std::endl;
 }
 
 grad_calculator::grad_calculator(std::function<double(Vector3D)> f, double epsilon, std::function<double(double)> kernel) : f(f), epsilon(epsilon), kernel(kernel) {}

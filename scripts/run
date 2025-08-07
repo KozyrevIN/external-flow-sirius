@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Script to build and run different targets
+# Usage: ./scripts/run <target>
+# Example: ./scripts/run main
+#          ./scripts/run debug
+
+TARGET=${1:-main}
+BUILD_DIR="build"
+
+case $TARGET in
+    "main")
+        echo "Building and running main target..."
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target main
+        if [ $? -eq 0 ]; then
+            echo "Running main executable:"
+            ./$BUILD_DIR/main
+        else
+            echo "Build failed!"
+            exit 1
+        fi
+        ;;
+    "debug")
+        echo "Building and running debug target with sanitizers..."
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR --target debug
+        if [ $? -eq 0 ]; then
+            echo "Running debug executable with sanitizers:"
+            export ASAN_OPTIONS="abort_on_error=1:detect_leaks=1:print_stats=1"
+            export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
+            ./$BUILD_DIR/debug
+        else
+            echo "Build failed!"
+            exit 1
+        fi
+        ;;
+    "clean")
+        echo "Cleaning build directory..."
+        rm -rf $BUILD_DIR
+        echo "Build directory cleaned."
+        ;;
+    "rebuild")
+        echo "Rebuilding all targets..."
+        rm -rf $BUILD_DIR
+        cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR
+        ;;
+    *)
+        echo "Usage: $0 <target>"
+        echo "Available targets:"
+        echo "  main     - Build and run main executable"
+        echo "  debug    - Build and run debug executable with sanitizers"
+        echo "  clean    - Clean build directory"
+        echo "  rebuild  - Clean and rebuild all targets"
+        exit 1
+        ;;
+esac

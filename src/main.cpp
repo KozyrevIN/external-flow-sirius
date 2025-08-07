@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstdlib>
 
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
@@ -19,8 +20,7 @@ int main(int argc, char *argv[]) {
     // Сначала создаем необходимые атрибуты
     attach_center_to_cells(mesh);
     attach_area(mesh);
-    attach_f(mesh, f_2);
-    
+    attach_f_true_grad(mesh, grad_f_2);
     // Затем вычисляем градиент
     grad_calculator grad_calc(f_2, 1.0, kernel_2);
     grad_calc.attach_grad(mesh);
@@ -29,5 +29,6 @@ int main(int argc, char *argv[]) {
     writer->SetFileName(mesh_out_path.c_str());
     writer->SetInputData(mesh);
     writer->Write();
+    std::cout<<"Heello";
     return EXIT_SUCCESS;
 }

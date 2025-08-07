@@ -7,7 +7,10 @@
       "WebFetch(domain:kitware.github.io)",
       "Bash(wsl:*)",
       "Bash(cmake:*)",
-      "Bash(./build/main)"
+      "Bash(./build/main)",
+      "Bash(mkdir:*)",
+      "Bash(make:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }
