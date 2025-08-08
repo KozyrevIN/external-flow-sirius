@@ -30,6 +30,9 @@ int main(int argc, char *argv[]) {
   add_grads(mesh, f_2, grad_f_2, 0.25, kernel_2);
   PlotGenerator generator;
   
+  // Generate single epsilon error plot to test h_max marker
+  generator.generateEpsilonErrorPlot(mesh, f_2, grad_f_2, kernel_2, 0.001, 3.0, 100, NormType::L2, "cos(theta)", "kernel_2");
+  
   // compare_all_norms(mesh, f_4,  grad_f_4, "exp(y*y-z*z)");
   generator.generateKernelComparisonPlot(mesh, f_2, grad_f_2, 0.001, 3.0, 100, "cos(theta)", NormType::L2);
   // generator.generate_and_linealize_plot(mesh, f_4, grad_f_4, kernel_4, 0.1, 2, 0.15, 1, 100, "exp(y*y-z*z)");

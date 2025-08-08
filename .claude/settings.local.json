@@ -16,7 +16,8 @@
       "Bash(gdb:*)",
       "Bash(python3:*)",
       "Bash(pip install:*)",
-      "Bash(apt install:*)"
+      "Bash(apt install:*)",
+      "Bash(./build/plot_generator_example)"
     ],
     "deny": []
   }

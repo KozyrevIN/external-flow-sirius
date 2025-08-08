@@ -10,7 +10,7 @@ import argparse
 import os
 import sys
 
-def plot_kernel_comparison(csv_files, output_file=None, function_name="f", norm_name="L2"):
+def plot_kernel_comparison(csv_files, output_file=None, function_name="f", norm_name="L2", h_max=None):
     """
     Create 2x2 subplot comparing different kernels.
     
@@ -84,12 +84,21 @@ def plot_kernel_comparison(csv_files, output_file=None, function_name="f", norm_
         ax.plot(optimal_epsilon, min_error, 'o', color='red', markersize=8,
                 markeredgecolor='black', markeredgewidth=1)
         
+        # Add h_max marker if provided
+        if h_max is not None:
+            ax.axvline(x=h_max, color='green', linestyle='--', linewidth=1.5, alpha=0.8, 
+                      label=f'h_max={h_max:.4f}')
+        
         # Set labels and title
         ax.set_xlabel('Epsilon', fontsize=10)
         ax.set_ylabel(f'{norm_name} Error', fontsize=10)
         ax.set_title(f'{kernel_name}\nOptimal: ε={optimal_epsilon:.4f}, Error={min_error:.2e}', 
                     fontsize=11, fontweight='bold')
         ax.grid(True, alpha=0.3)
+        
+        # Add legend to each subplot if h_max is provided
+        if h_max is not None:
+            ax.legend(loc='upper right', fontsize=9)
         
         # Set consistent axis limits for comparison
         if i == 0:
@@ -158,6 +167,7 @@ def main():
     parser.add_argument('-o', '--output', help='Output file for plot (PNG format)')
     parser.add_argument('--function', default='f', help='Function name for plot title')
     parser.add_argument('--norm', default='L2', help='Norm type for plot labels')
+    parser.add_argument('--h-max', type=float, help='Maximum cell diameter (h_max) to show as marker')
     
     args = parser.parse_args()
     
@@ -168,7 +178,7 @@ def main():
             return 1
     
     # Create the comparison plot
-    plot_kernel_comparison(args.csv_files, args.output, args.function, args.norm)
+    plot_kernel_comparison(args.csv_files, args.output, args.function, args.norm, args.h_max)
     
     return 0
 
