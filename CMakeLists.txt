@@ -62,6 +62,7 @@ add_executable(main ${SOURCES})
 add_executable(plot_generator_example ${PLOT_GENERATOR_EXAMPLE_SOURCES})
 add_executable(error_analysis_example ${ERROR_ANALYSIS_EXAMPLE_SOURCES})
 
+
 # Set C++ standard and include directories for main target
 target_compile_features(main PRIVATE cxx_std_17)
 target_include_directories(main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

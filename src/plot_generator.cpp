@@ -39,11 +39,15 @@ void PlotGenerator::createTempDirectories() {
     std::string mkdir_csv_cmd = "mkdir -p " + csv_dir;
     std::string mkdir_meshes_cmd = "mkdir -p " + meshes_dir;
     
-    std::system(mkdir_temp_cmd.c_str());
-    std::system(mkdir_csv_cmd.c_str());
-    std::system(mkdir_meshes_cmd.c_str());
+    int result1 = std::system(mkdir_temp_cmd.c_str());
+    int result2 = std::system(mkdir_csv_cmd.c_str());
+    int result3 = std::system(mkdir_meshes_cmd.c_str());
     
-    std::cout << "Created temporary directories: temp/csv and meshes" << std::endl;
+    if (result1 == 0 && result2 == 0 && result3 == 0) {
+        std::cout << "Created temporary directories: temp/csv and meshes" << std::endl;
+    } else {
+        std::cerr << "Warning: Some directories may not have been created properly" << std::endl;
+    }
 }
 
 int PlotGenerator::getNextAvailablePlotNumber() {
@@ -269,7 +273,10 @@ std::string PlotGenerator::generateKernelComparisonPlot(
         // Clean up CSV files
         for (const std::string& csv_file : csv_files) {
             std::string rm_cmd = "rm -f " + csv_file;
-            std::system(rm_cmd.c_str());
+            int rm_result = std::system(rm_cmd.c_str());
+            if (rm_result != 0) {
+                std::cerr << "Warning: Failed to remove temporary CSV: " << csv_file << std::endl;
+            }
         }
         
         // Output best results to console
