@@ -46,6 +46,16 @@ show_help() {
     echo "                          - Error data visualization"
     echo "                          - Combined plot generation"
     echo ""
+    echo "  sphere_generator_example Generate triangulated spherical meshes using gmsh"
+    echo "                          - Demonstrates sphere_generator class functionality"
+    echo "                          - Generates meshes with different parameters"
+    echo "                          - Saves results to VTK format files"
+    echo ""
+    echo "  sphere_error_analysis_example Complete error analysis pipeline for generated spheres"
+    echo "                          - Generates spheres with multiple mesh sizes"
+    echo "                          - Performs automatic error analysis and convergence study"
+    echo "                          - Creates visualizations and convergence plots"
+    echo ""
  
 }
 
@@ -102,8 +112,10 @@ case $TARGET in
             echo "  debug                   - Build and run debug executable with sanitizers"
             echo ""
             echo "Available CMake targets:"
-            echo "  plot_generator_example  - Build and run plot generator example"
-            echo "  error_analysis_example  - Build and run complete error analysis example"
+            echo "  plot_generator_example        - Build and run plot generator example"
+            echo "  error_analysis_example        - Build and run complete error analysis example"
+            echo "  sphere_generator_example      - Build and run sphere generator example"
+            echo "  sphere_error_analysis_example - Build and run sphere error analysis example"
             echo ""
             echo "Or specify any other CMake target name."
             exit 1

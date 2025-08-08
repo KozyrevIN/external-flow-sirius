@@ -83,59 +83,39 @@ std::vector<Vector3D> GradientVisualizer::computeGradientDifferences() {
 }
 
 double GradientVisualizer::computeErrorNorm(NormType normType) {
-    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
-        mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
-    vtkDoubleArray *computedGradArray = vtkDoubleArray::SafeDownCast(
-        mesh->GetCellData()->GetArray(computed_grad_array_name.c_str()));
-
-    if (!trueGradArray || !computedGradArray) {
-        throw std::runtime_error("Failed to retrieve gradient arrays");
+    // Check if area data exists
+    vtkDataArray *areaArray = mesh->GetCellData()->GetArray("Area");
+    if (!areaArray) {
+        throw std::runtime_error("Failed to retrieve area array. Ensure mesh has area data attached.");
     }
 
+    // Use computeErrorNormsPerCell for consistency and reuse
+    std::vector<double> cellErrors = computeErrorNormsPerCell();
     vtkIdType numCells = mesh->GetNumberOfCells();
     
-    // Optimized computation: calculate aggregate directly without storing all errors
     double result = 0.0;
-    
+
     switch (normType) {
     case NormType::L1: {
+        // L1 norm: ∫|e(x)| dA
         for (vtkIdType i = 0; i < numCells; i++) {
-            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
-            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-            
-            double dx = trueGrad.x - computedGrad.x;
-            double dy = trueGrad.y - computedGrad.y;
-            double dz = trueGrad.z - computedGrad.z;
-            
-            result += std::sqrt(dx*dx + dy*dy + dz*dz);
+            double area = areaArray->GetTuple1(i);
+            result += cellErrors[i] * area;
         }
         return result;
     }
     case NormType::L2: {
+        // L2 norm: sqrt(∫|e(x)|² dA)
         for (vtkIdType i = 0; i < numCells; i++) {
-            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
-            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-            
-            double dx = trueGrad.x - computedGrad.x;
-            double dy = trueGrad.y - computedGrad.y;
-            double dz = trueGrad.z - computedGrad.z;
-            
-            double cellError = std::sqrt(dx*dx + dy*dy + dz*dz);
-            result += cellError * cellError;
+            double area = areaArray->GetTuple1(i);
+            result += cellErrors[i] * cellErrors[i] * area;
         }
         return std::sqrt(result);
     }
     case NormType::LINF: {
+        // L∞ norm is not area-weighted (maximum over all cells)
         for (vtkIdType i = 0; i < numCells; i++) {
-            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
-            Vector3D computedGrad = getVectorFromArray(computedGradArray, i);
-            
-            double dx = trueGrad.x - computedGrad.x;
-            double dy = trueGrad.y - computedGrad.y;
-            double dz = trueGrad.z - computedGrad.z;
-            
-            double cellError = std::sqrt(dx*dx + dy*dy + dz*dz);
-            result = std::max(result, cellError);
+            result = std::max(result, cellErrors[i]);
         }
         return result;
     }
