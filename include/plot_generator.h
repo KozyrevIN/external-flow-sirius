@@ -72,6 +72,24 @@ public:
         const std::string& trueGradArrayName = "f true grad",
         const std::string& computedGradArrayName = "Grad"
     );
+
+    // Generate plot with linear regression analysis
+    std::string generate_and_linealize_plot(
+        vtkSmartPointer<vtkPolyData> mesh,
+        std::function<double(Vector3D)> function,
+        std::function<Vector3D(Vector3D)> grad_function,
+        std::function<double(double)> kernel,
+        double eps_min,
+        double eps_max,
+        double eps_linear_min,
+        double eps_linear_max,
+        int num_points = 50,
+        const std::string& function_name = "f",
+        const std::string& kernel_name = "kernel",
+        NormType normType = NormType::L2,
+        const std::string& trueGradArrayName = "f true grad",
+        const std::string& computedGradArrayName = "Grad"
+    );
     
 };
 

@@ -85,7 +85,10 @@ vtkSmartPointer<vtkPolyData> load_and_init_mash(std::string mesh_in_path){
 void write_mesh(vtkSmartPointer<vtkPolyData> mesh, std::string mesh_out_path){
     // Ensure meshes directory exists
     std::string mkdir_cmd = "mkdir -p meshes";
-    std::system(mkdir_cmd.c_str());
+    int mkdir_result = std::system(mkdir_cmd.c_str());
+    if (mkdir_result != 0) {
+        std::cerr << "Warning: Failed to create meshes directory" << std::endl;
+    }
     
     // Prepend meshes/ if not already present
     if (mesh_out_path.find("meshes/") != 0) {

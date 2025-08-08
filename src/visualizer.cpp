@@ -264,7 +264,10 @@ void GradientVisualizer::add_errors_in_mesh(const std::string &differenceArrayNa
                                            const std::string &errorNormArrayName) {
     // Ensure meshes directory exists
     std::string mkdir_cmd = "mkdir -p meshes";
-    std::system(mkdir_cmd.c_str());
+    int mkdir_result = std::system(mkdir_cmd.c_str());
+    if (mkdir_result != 0) {
+        std::cerr << "Warning: Failed to create meshes directory" << std::endl;
+    }
     
     // Compute gradient differences and error norms
     std::vector<Vector3D> differences = computeGradientDifferences();
