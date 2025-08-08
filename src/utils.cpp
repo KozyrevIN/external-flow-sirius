@@ -101,6 +101,7 @@ void write_mesh(vtkSmartPointer<vtkPolyData> mesh, std::string mesh_out_path){
     writer->Write();
 }
 void add_grads(vtkSmartPointer<vtkPolyData> mesh, std::function<double(Vector3D)> f, std::function<Vector3D(Vector3D)> grad_f, double epsilon, std::function<double(double)> kernel){
+    attach_f(mesh, f);
     attach_f_true_grad(mesh, grad_f);
     grad_calculator grad_calc(f, epsilon, kernel);
     grad_calc.attach_grad(mesh);

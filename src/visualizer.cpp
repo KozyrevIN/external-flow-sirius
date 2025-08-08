@@ -89,35 +89,60 @@ double GradientVisualizer::computeErrorNorm(NormType normType) {
         throw std::runtime_error("Failed to retrieve area array. Ensure mesh has area data attached.");
     }
 
+    // Get true gradient array for normalization
+    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
+        mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
+    if (!trueGradArray) {
+        throw std::runtime_error("Failed to retrieve true gradient array");
+    }
+
     // Use computeErrorNormsPerCell for consistency and reuse
     std::vector<double> cellErrors = computeErrorNormsPerCell();
     vtkIdType numCells = mesh->GetNumberOfCells();
     
-    double result = 0.0;
+    double errorNorm = 0.0;
+    double trueGradNorm = 0.0;
 
     switch (normType) {
     case NormType::L1: {
         // L1 norm: ∫|e(x)| dA
         for (vtkIdType i = 0; i < numCells; i++) {
             double area = areaArray->GetTuple1(i);
-            result += cellErrors[i] * area;
+            errorNorm += cellErrors[i] * area;
+            
+            // Calculate L1 norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm += trueGradMagnitude * area;
         }
-        return result;
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     case NormType::L2: {
         // L2 norm: sqrt(∫|e(x)|² dA)
         for (vtkIdType i = 0; i < numCells; i++) {
             double area = areaArray->GetTuple1(i);
-            result += cellErrors[i] * cellErrors[i] * area;
+            errorNorm += cellErrors[i] * cellErrors[i] * area;
+            
+            // Calculate L2 norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm += trueGradMagnitude * trueGradMagnitude * area;
         }
-        return std::sqrt(result);
+        errorNorm = std::sqrt(errorNorm);
+        trueGradNorm = std::sqrt(trueGradNorm);
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     case NormType::LINF: {
         // L∞ norm is not area-weighted (maximum over all cells)
         for (vtkIdType i = 0; i < numCells; i++) {
-            result = std::max(result, cellErrors[i]);
+            errorNorm = std::max(errorNorm, cellErrors[i]);
+            
+            // Calculate L∞ norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm = std::max(trueGradNorm, trueGradMagnitude);
         }
-        return result;
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     default:
         throw std::runtime_error("Unknown norm type");
