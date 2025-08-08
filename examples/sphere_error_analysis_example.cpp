@@ -78,7 +78,7 @@ std::pair<double, double> findOptimalEpsilon(vtkSmartPointer<vtkPolyData> mesh,
         test_mesh->DeepCopy(mesh);
 
         // Compute gradients with this epsilon
-        add_grads(test_mesh, f_2, grad_f_2, epsilon, kernel_2);
+        add_grads(test_mesh, f_4, grad_f_4, epsilon, kernel_2);
 
         // Compute error
         GradientVisualizer test_visualizer(test_mesh);
@@ -147,8 +147,8 @@ int main(int argc, char *argv[]) {
             attach_center_to_cells(mesh);
             attach_area(mesh);
             double h_max = calculateMaxCellDiameter(mesh);
-            attach_f(mesh, f_2);
-            attach_f_true_grad(mesh, grad_f_2);
+            attach_f(mesh, f_4);
+            attach_f_true_grad(mesh, grad_f_4);
             auto timestamp_after_attach = std::chrono::high_resolution_clock::now();
             time_data_attachment += std::chrono::duration<double>(timestamp_after_attach - last_timestamp).count();
             last_timestamp = timestamp_after_attach;
