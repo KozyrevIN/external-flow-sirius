@@ -12,7 +12,11 @@
       "Bash(make:*)",
       "Bash(chmod:*)",
       "Bash(sudo apt install:*)",
-      "Bash(./scripts/run:*)"
+      "Bash(./scripts/run:*)",
+      "Bash(gdb:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(apt install:*)"
     ],
     "deny": []
   }
