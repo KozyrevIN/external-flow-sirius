@@ -27,9 +27,7 @@ std::string compare_all_norms(vtkSmartPointer<vtkPolyData> mesh,
 
 int main(int argc, char *argv[]) {
   vtkSmartPointer<vtkPolyData> mesh = load_and_init_mash(mesh_in_path);
-  add_grads(mesh, f_3, grad_f_3, 0.25, kernel_2);
+  add_grads(mesh, f_2, grad_f_2, 0.25, kernel_2);
   PlotGenerator generator;
-
-  std::string comparison_plot = compare_all_norms(mesh, f_3, grad_f_3, 0.0001, 10.0, 100, "x^2+y^2+z^2");
-  std::cout << "Generated comparison plot: " << comparison_plot << std::endl;
+  generator.generate_and_linealize_plot(mesh, f_2, grad_f_2, kernel_4, 0.001, 3.0, 0.1, 1.5, 100, "cos(theta)");
 }

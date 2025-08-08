@@ -324,3 +324,74 @@ std::string PlotGenerator::generateKernelComparisonPlot(
         throw;
     }
 }
+
+std::string PlotGenerator::generate_and_linealize_plot(
+    vtkSmartPointer<vtkPolyData> mesh,
+    std::function<double(Vector3D)> function,
+    std::function<Vector3D(Vector3D)> grad_function,
+    std::function<double(double)> kernel,
+    double eps_min,
+    double eps_max,
+    double eps_linear_min,
+    double eps_linear_max,
+    int num_points,
+    const std::string& function_name,
+    const std::string& kernel_name,
+    NormType normType,
+    const std::string& trueGradArrayName,
+    const std::string& computedGradArrayName) {
+    
+    try {
+        // Step 1: Generate epsilon error analysis data
+        GradientVisualizer visualizer(mesh, trueGradArrayName, computedGradArrayName);
+        
+        std::string csv_filename = "temp/csv/linearize_analysis_" + std::to_string(getNextAvailablePlotNumber()) + ".csv";
+        
+        std::cout << "Generating epsilon error analysis for linearization..." << std::endl;
+        visualizer.evaluateEpsilonError(
+            function, kernel, eps_min, eps_max,
+            num_points, csv_filename, normType
+        );
+        
+        // Step 2: Generate plot filename
+        std::string plot_filename = getNextPlotFilename();
+        
+        // Step 3: Execute Python script for linearization analysis
+        std::string norm_name = (normType == NormType::L1) ? "L1" :
+                               (normType == NormType::L2) ? "L2" : "L∞";
+        
+        std::ostringstream python_cmd;
+        python_cmd << "python3 plot_linearization.py"
+                   << " " << csv_filename
+                   << " -o " << plot_filename
+                   << " --eps-linear-min " << eps_linear_min
+                   << " --eps-linear-max " << eps_linear_max
+                   << " --function \"" << function_name << "\""
+                   << " --kernel \"" << kernel_name << "\""
+                   << " --norm \"" << norm_name << "\"";
+        
+        bool success = executeCommand(python_cmd.str());
+        
+        // Step 4: Clean up temporary CSV file
+        std::string rm_cmd = "rm -f " + csv_filename;
+        int rm_result = std::system(rm_cmd.c_str());
+        if (rm_result != 0) {
+            std::cerr << "Warning: Failed to remove temporary CSV: " << csv_filename << std::endl;
+        }
+        
+        if (success) {
+            std::cout << "Successfully generated linearization plot: " << plot_filename << std::endl;
+            return plot_filename;
+        } else {
+            throw std::runtime_error("Failed to execute Python linearization plotting script");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error in generate_and_linealize_plot: " << e.what() << std::endl;
+        throw;
+    }
+}
+//         std::cerr << "Error in generate_and_linealize_plot: " << e.what() << std::endl;
+//         throw;
+//     }
+// }
