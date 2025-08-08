@@ -4,7 +4,7 @@
 
 #include "../include/functions.h"
 #include "../include/geometry.h"
-
+#include <cmath>
 // f_1(x) = x[0]
 double f_1(const Vector3D &vec) { return vec.x; }
 
@@ -31,7 +31,11 @@ Vector3D grad_f_3(const Vector3D &vec) {
 }
 
 double f_4(const Vector3D &vec){
-    return 
+    return exp(vec.y*vec.y-vec.z*vec.z);
+}
+
+Vector3D grad_f_4(const Vector3D &vec) {
+    return {0,2 * vec.y * f_4(vec), -2 * vec.z * f_4(vec)};
 }
 
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
