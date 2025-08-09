@@ -11,21 +11,23 @@
 \usepackage{hyperref}
 \usepackage{graphicx} % Allows including images
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
-\usepackage[babel]{}
+\usepackage{amsmath} % Enhanced math support
+\usepackage{amssymb} % Additional math symbols
+\usepackage{mathtools} % Additional math tools
 
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
 %----------------------------------------------------------------------------------------
 
-\title{Задача нахождения поверхностных производных}
+\title{Аппроксимация поверхностных производных функций с применением интегральных операторов}
 
 \author{Студенты: Иван Козырев, Лев Кулеваций \\
  Руководитель: Сетуха Алексей Викторович}
 
 \institute
 {
-    Department of Computer Science and Information Engineering \\
-    National Taiwan University % Your institution for the title page
+    Образовательный центр «Сириус» \\
+    Проект по вычислительной математике
 }
 \date{\today} % Date, can be changed to a custom date
 
@@ -35,124 +37,202 @@
 
 \begin{document}
 
+% Слайд 1: Титульный слайд
 \begin{frame}
-    % Print the title page as the first slide
     \titlepage
 \end{frame}
 
-\begin{frame}{Overview}
-    % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
-    \tableofcontents
-\end{frame}
-
-%------------------------------------------------
-\section{First Section}
-%------------------------------------------------
-
-\begin{frame}{Bullet Points}
-    \begin{itemize}
-        \item Lorem ipsum dolor sit amet, consectetur adipiscing elit
-        \item Aliquam blandit faucibus nisi, sit amet dapibus enim tempus eu
-        \item Nulla commodo, erat quis gravida posuere, elit lacus lobortis est, quis porttitor odio mauris at libero
-        \item Nam cursus est eget velit posuere pellentesque
-        \item Vestibulum faucibus velit a augue condimentum quis convallis nulla gravida
-    \end{itemize}
-\end{frame}
-
-%------------------------------------------------
-
-\begin{frame}{Blocks of Highlighted Text}
-    In this slide, some important text will be \alert{highlighted} because it's important. Please, don't abuse it.
-
-    \begin{block}{Block}
-        Sample text
-    \end{block}
-
-    \begin{alertblock}{Alertblock}
-        Sample text in red box
+% Слайд 2: Постановка проблемы
+\begin{frame}{Постановка проблемы}
+    \begin{alertblock}{Цель исследования}
+        \textbf{Асимптотическая проверка формулы погрешности} и \textbf{нахождение минимума} данной функции численно.
     \end{alertblock}
-
-    \begin{examples}
-        Sample text in green box. The title of the block is ``Examples".
-    \end{examples}
+    
+    \begin{block}{Параметры задачи}
+        \begin{itemize}
+            \item $h$ — фиксированный диаметр разбиения
+            \item $\varepsilon$ — изменяемый параметр регуляризации
+            \item Поиск оптимального $\varepsilon$ для минимизации погрешности
+        \end{itemize}
+    \end{block}
+    
+    \begin{figure}
+        \centering
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: График функции 1 из ParaView]}
+            \vspace{2cm}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: График функции 2 из ParaView]}
+            \vspace{2cm}
+        \end{minipage}
+    \end{figure}
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}{Multiple Columns}
-    \begin{columns}[c] % The "c" option specifies centered vertical alignment while the "t" option is used for top vertical alignment
-
-        \column{.45\textwidth} % Left column and width
-        \textbf{Heading}
-        \begin{enumerate}
-            \item Statement
-            \item Explanation
-            \item Example
-        \end{enumerate}
-
-        \column{.45\textwidth} % Right column and width
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer lectus nisl, ultricies in feugiat rutrum, porttitor sit amet augue. Aliquam ut tortor mauris. Sed volutpat ante purus, quis accumsan dolor.
-
-    \end{columns}
+% Слайд 3: Определение поверхностного градиента
+\begin{frame}{Определение поверхностного градиента}
+    \begin{block}{Поверхностный градиент}
+        Для функции $f$, определённой на поверхности $S$:
+        \[f(y) = f(x) + \langle A, y - x \rangle + o(|y - x|)\]
+        где $A$ — поверхностный градиент в точке $x$.
+    \end{block}
+    
+    \begin{block}{Интегральная формула вычисления}
+        \[A = \nabla_S f(x) = \int_S K(x, y) f(y) \, dS(y)\]
+        где $K(x, y)$ — ядро интегрального оператора.
+    \end{block}
 \end{frame}
 
-%------------------------------------------------
-\section{Second Section}
-%------------------------------------------------
-
-\begin{frame}{Table}
-    \begin{table}
-        \begin{tabular}{l l l}
-            \toprule
-            \textbf{Treatments} & \textbf{Response 1} & \textbf{Response 2} \\
-            \midrule
-            Treatment 1         & 0.0003262           & 0.562               \\
-            Treatment 2         & 0.0015681           & 0.910               \\
-            Treatment 3         & 0.0009271           & 0.296               \\
-            \bottomrule
-        \end{tabular}
-        \caption{Table caption}
-    \end{table}
+% Слайд 4: Численная аппроксимация
+\begin{frame}{Численная аппроксимация поверхностного градиента}
+    \begin{block}{Формула численной аппроксимации}
+        \[\tilde{A}_h = \sum_{j=1}^N K_\varepsilon(x, y_j) f(y_j) |S_j|\]
+        где $y_j$ — центры треугольников, $|S_j|$ — их площади.
+    \end{block}
+    
+    \begin{block}{Оценка погрешности}
+        \begin{center}
+            \textbf{[Заглушка для формулы погрешности из image copy 2.png]}
+        \end{center}
+    \end{block}
+    
+    \begin{block}{Диаметр разбиения}
+        \[h = \max_{j=1,N} \sup_{x,y \in \sigma_j} |x - y|\]
+    \end{block}
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}{Theorem}
-    \begin{theorem}[Mass--energy equivalence]
-        $E = mc^2$
-    \end{theorem}
+% Слайд 5: Сравнение различных ядер
+\begin{frame}{Сравнение различных ядер}
+    \begin{figure}
+        \centering
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сравнение 4 ядер для функции 1]}
+            \vspace{3cm}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сравнение 4 ядер для функции 2]}
+            \vspace{3cm}
+        \end{minipage}
+    \end{figure}
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}{Figure}
-    Uncomment the code on this slide to include your own image from the same directory as the template .TeX file.
-    %\begin{figure}
-    %\includegraphics[width=0.8\linewidth]{test}
-    %\end{figure}
+% Слайд 6: Визуализация градиента на сфере
+\begin{frame}{Визуализация поверхностного градиента}
+    \begin{figure}
+        \centering
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сфера с настоящим градиентом]}
+            \vspace{4cm}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сфера с L2 ошибкой]}
+            \vspace{4cm}
+        \end{minipage}
+    \end{figure}
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}[fragile] % Need to use the fragile option when verbatim is used in the slide
-    \frametitle{Citation}
-    An example of the \verb|\cite| command to cite within the presentation:\\~
-
-    This statement requires citation \cite{p1}.
+% Слайд 7: Дополнительная визуализация
+\begin{frame}{Дополнительная визуализация}
+    \begin{figure}
+        \centering
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сфера с настоящим градиентом]}
+            \vspace{4cm}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Сфера с L2 ошибкой]}
+            \vspace{4cm}
+        \end{minipage}
+    \end{figure}
 \end{frame}
 
-%------------------------------------------------
-
-\begin{frame}{References}
-    \footnotesize
-    \bibliography{reference.bib}
-    \bibliographystyle{apalike}
+% Слайд 8: Теоретический вывод
+\begin{frame}{Теоретический вывод зависимости $h$ от $\varepsilon$}
+    \begin{block}{Исходная формула погрешности}
+        \[E_f(\varepsilon, h) = a \cdot \varepsilon^p + b \cdot \frac{h^2}{\varepsilon^2}\]
+    \end{block}
+    
+    \begin{alertblock}{Оптимальная зависимость}
+        \[h_{opt} = \varepsilon^{\frac{2}{p+2}}\]
+        где $p$ — степень в первом слагаемом формулы погрешности.
+    \end{alertblock}
 \end{frame}
 
-%------------------------------------------------
+% Слайд 9: Графики зависимости h от eps
+\begin{frame}{Зависимость $h$ от $\varepsilon$}
+    \begin{figure}
+        \centering
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Численно найденная]}
+            \textbf{оптимальная зависимость для функции 1}
+            \vspace{3cm}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.45\textwidth}
+            \centering
+            \textbf{[Заглушка: Численно найденная]}
+            \textbf{оптимальная зависимость для функции 2}
+            \vspace{3cm}
+        \end{minipage}
+    \end{figure}
+\end{frame}
 
+% Слайд 10: График L2 ошибки
+\begin{frame}{Зависимость $L^2$ ошибки от $h$}
+    \begin{figure}
+        \centering
+        \textbf{[Заглушка: График зависимости $L^2$ ошибки от $h$]}
+        \vspace{5cm}
+    \end{figure}
+\end{frame}
+
+% Слайд 11: Выводы
+\begin{frame}{Выводы}
+    \begin{block}{Основные результаты}
+        \begin{itemize}
+            \item Проведена асимптотическая проверка теоретической формулы погрешности
+            \item Численно найдена оптимальная зависимость $h$ от $\varepsilon$
+            \item Подтверждена теоретическая зависимость $h = \varepsilon^{2/(p+2)}$
+            \item Исследовано поведение $L^2$ ошибки при различных параметрах дискретизации
+        \end{itemize}
+    \end{block}
+    
+    \begin{alertblock}{Практическое значение}
+        Полученные результаты позволяют оптимально выбирать параметры численного метода для достижения минимальной погрешности аппроксимации поверхностных производных.
+    \end{alertblock}
+\end{frame}
+
+% Слайд 12: Источники
+\begin{frame}{Источники}
+    \begin{thebibliography}{2}
+        \bibitem{setuha}
+        \textbf{Сетуха Алексей Викторович}
+        \newblock Об аппроксимации поверхностных производных функций с применением интегральных операторов
+        \newblock Научная статья
+        
+        \bibitem{eldredge}
+        \textbf{Jeff D. Eldredge, Anthony Leonard, and Tim Colonius}
+        \newblock A General Deterministic Treatment of Derivatives in Particle Methods
+        \newblock Научная статья
+    \end{thebibliography}
+\end{frame>
+
+% Слайд 13: Спасибо за внимание
 \begin{frame}
-    \Huge{\centerline{\textbf{The End}}}
+    \Huge{\centerline{\textbf{Спасибо за внимание!}}}
 \end{frame}
 
 %----------------------------------------------------------------------------------------
