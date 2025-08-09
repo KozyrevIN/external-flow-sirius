@@ -12,6 +12,7 @@ Vector3D calc_normal(vtkCell *cell);
 double calc_area(vtkCell *cell);
 void attach_area(vtkPolyData *polyData);
 Vector3D calc_rectangle_projection(double* point1, double* point2, double* point3, Vector3D *vector);
+double calculateMaxCellDiameter(vtkSmartPointer<vtkPolyData> mesh);
 
 struct grad_calculator {
     std::function<double(Vector3D)> f;

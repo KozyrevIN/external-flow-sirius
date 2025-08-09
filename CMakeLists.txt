@@ -75,6 +75,7 @@ set(PLOT_GENERATOR_EXAMPLE_SOURCES
     src/geometry.cpp
     src/visualizer.cpp
     src/plot_generator.cpp
+    src/sphere_generator.cpp
 )
 
 set(ERROR_ANALYSIS_EXAMPLE_SOURCES 
@@ -173,6 +174,7 @@ target_link_libraries(main
 target_link_libraries(plot_generator_example
   PRIVATE
    ${VTK_LIBRARIES}
+   ${GMSH_LIBRARIES}
 )
 
 target_link_libraries(error_analysis_example

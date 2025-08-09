@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <omp.h>
+#include <vector>
 #include <vtkCellData.h>
 #include <vtkDoubleArray.h>
 #include <vtkXMLPolyDataWriter.h>
@@ -244,11 +246,17 @@ void GradientVisualizer::evaluateEpsilonError(
     
     std::cout << "Evaluating gradient error for epsilon range [" 
               << epsilon_min << ", " << epsilon_max << "] with " 
-              << num_points << " points..." << std::endl;
+              << num_points << " points (parallel)..." << std::endl;
     
     // Store original computed gradient array name to restore later
     std::string original_computed_name = computed_grad_array_name;
     
+    // Prepare vector to store results for parallel processing
+    std::vector<std::pair<double, double>> epsilon_error_pairs(num_points);
+    
+    // Parallel computation of errors for each epsilon
+    // Dynamic scheduling for better load balancing since epsilon computation times may vary
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < num_points; i++) {
         // Calculate epsilon value (logarithmic spacing for better coverage)
         double epsilon = epsilon_min * std::pow(epsilon_max / epsilon_min, 
@@ -264,18 +272,23 @@ void GradientVisualizer::evaluateEpsilonError(
         // Compute gradient with current epsilon
         grad_calc.attach_grad(temp_mesh);
         
-        // Temporarily update computed gradient array name for error calculation
-        std::string temp_computed_name = "Grad";
-        computed_grad_array_name = temp_computed_name;
-        
         // Create temporary visualizer for this epsilon
+        std::string temp_computed_name = "Grad";
         GradientVisualizer temp_visualizer(temp_mesh, true_grad_array_name, temp_computed_name);
         
         // Compute error norm
         double error = temp_visualizer.computeErrorNorm(normType);
         
-        // Write to CSV
-        csv_file << std::fixed << std::setprecision(6) << epsilon << "," << error << "\n";
+        // Store result (thread-safe since each thread writes to different index)
+        epsilon_error_pairs[i] = std::make_pair(epsilon, error);
+    }
+    
+    // Sort results by epsilon to ensure correct order (parallel processing might complete out of order)
+    std::sort(epsilon_error_pairs.begin(), epsilon_error_pairs.end());
+    
+    // Write results to CSV sequentially
+    for (const auto& pair : epsilon_error_pairs) {
+        csv_file << std::fixed << std::setprecision(6) << pair.first << "," << pair.second << "\n";
     }
     
     // Restore original computed gradient array name
