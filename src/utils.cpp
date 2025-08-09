@@ -101,7 +101,34 @@ void write_mesh(vtkSmartPointer<vtkPolyData> mesh, std::string mesh_out_path){
     writer->Write();
 }
 void add_grads(vtkSmartPointer<vtkPolyData> mesh, std::function<double(Vector3D)> f, std::function<Vector3D(Vector3D)> grad_f, double epsilon, std::function<double(double)> kernel){
+    attach_f(mesh, f);
     attach_f_true_grad(mesh, grad_f);
     grad_calculator grad_calc(f, epsilon, kernel);
     grad_calc.attach_grad(mesh);
+}
+
+double calculateMaxCellDiameter(vtkSmartPointer<vtkPolyData> mesh) {
+    double max_h = 0.0;
+    
+    for (vtkIdType cellId = 0; cellId < mesh->GetNumberOfCells(); ++cellId) {
+        vtkCell* cell = mesh->GetCell(cellId);
+        if (cell->GetNumberOfPoints() == 3) { // Triangle
+            // Get the three vertices of the triangle
+            double p0[3], p1[3], p2[3];
+            mesh->GetPoint(cell->GetPointId(0), p0);
+            mesh->GetPoint(cell->GetPointId(1), p1);
+            mesh->GetPoint(cell->GetPointId(2), p2);
+            
+            // Calculate edge lengths
+            double d01 = std::sqrt(std::pow(p1[0]-p0[0], 2) + std::pow(p1[1]-p0[1], 2) + std::pow(p1[2]-p0[2], 2));
+            double d12 = std::sqrt(std::pow(p2[0]-p1[0], 2) + std::pow(p2[1]-p1[1], 2) + std::pow(p2[2]-p1[2], 2));
+            double d20 = std::sqrt(std::pow(p0[0]-p2[0], 2) + std::pow(p0[1]-p2[1], 2) + std::pow(p0[2]-p2[2], 2));
+            
+            // Maximum edge length is the diameter for this triangle
+            double cell_h = std::max({d01, d12, d20});
+            max_h = std::max(max_h, cell_h);
+        }
+    }
+    
+    return max_h;
 }

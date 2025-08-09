@@ -94,7 +94,11 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
     const std::string& computedGradArrayName) {
     
     try {
-        // Step 1: Create visualizer and generate CSV data
+        // Step 1: Calculate h_max for the mesh
+        double h_max = calculateMaxCellDiameter(mesh);
+        std::cout << "Calculated h_max: " << h_max << std::endl;
+        
+        // Step 2: Create visualizer and generate CSV data
         GradientVisualizer visualizer(mesh, trueGradArrayName, computedGradArrayName);
         
         // Generate temporary CSV filename
@@ -106,10 +110,10 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
             num_points, csv_filename, normType
         );
         
-        // Step 2: Generate plot filename
+        // Step 3: Generate plot filename
         std::string plot_filename = getNextPlotFilename();
         
-        // Step 3: Execute Python script with metadata
+        // Step 4: Execute Python script with metadata including h_max
         std::string norm_name = (normType == NormType::L1) ? "L1" :
                                (normType == NormType::L2) ? "L2" : "L∞";
         
@@ -119,11 +123,12 @@ std::string PlotGenerator::generateEpsilonErrorPlot(
                    << " -o " << plot_filename
                    << " --function \"" << function_name << "\""
                    << " --kernel \"" << kernel_name << "\""
-                   << " --norm \"" << norm_name << "\"";
+                   << " --norm \"" << norm_name << "\""
+                   << " --h-max " << h_max;
         
         bool success = executeCommand(python_cmd.str());
         
-        // Step 4: Clean up temporary CSV file
+        // Step 5: Clean up temporary CSV file
         std::string rm_cmd = "rm -f " + csv_filename;
         int rm_result = std::system(rm_cmd.c_str());
         if (rm_result == 0) {
@@ -197,6 +202,10 @@ std::string PlotGenerator::generateKernelComparisonPlot(
     };
     
     try {
+        // Calculate h_max for the mesh
+        double h_max = calculateMaxCellDiameter(mesh);
+        std::cout << "Calculated h_max: " << h_max << std::endl;
+        
         // Create visualizer  
         GradientVisualizer visualizer(mesh, trueGradArrayName, computedGradArrayName);
         
@@ -266,7 +275,8 @@ std::string PlotGenerator::generateKernelComparisonPlot(
         
         python_cmd << " -o " << plot_filename
                    << " --function \"" << function_name << "\""
-                   << " --norm \"" << norm_name << "\"";
+                   << " --norm \"" << norm_name << "\""
+                   << " --h-max " << h_max;
         
         bool success = executeCommand(python_cmd.str());
         

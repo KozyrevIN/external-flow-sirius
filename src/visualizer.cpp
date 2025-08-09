@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <omp.h>
+#include <vector>
 #include <vtkCellData.h>
 #include <vtkDoubleArray.h>
 #include <vtkXMLPolyDataWriter.h>
@@ -89,35 +91,60 @@ double GradientVisualizer::computeErrorNorm(NormType normType) {
         throw std::runtime_error("Failed to retrieve area array. Ensure mesh has area data attached.");
     }
 
+    // Get true gradient array for normalization
+    vtkDoubleArray *trueGradArray = vtkDoubleArray::SafeDownCast(
+        mesh->GetCellData()->GetArray(true_grad_array_name.c_str()));
+    if (!trueGradArray) {
+        throw std::runtime_error("Failed to retrieve true gradient array");
+    }
+
     // Use computeErrorNormsPerCell for consistency and reuse
     std::vector<double> cellErrors = computeErrorNormsPerCell();
     vtkIdType numCells = mesh->GetNumberOfCells();
     
-    double result = 0.0;
+    double errorNorm = 0.0;
+    double trueGradNorm = 0.0;
 
     switch (normType) {
     case NormType::L1: {
         // L1 norm: ∫|e(x)| dA
         for (vtkIdType i = 0; i < numCells; i++) {
             double area = areaArray->GetTuple1(i);
-            result += cellErrors[i] * area;
+            errorNorm += cellErrors[i] * area;
+            
+            // Calculate L1 norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm += trueGradMagnitude * area;
         }
-        return result;
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     case NormType::L2: {
         // L2 norm: sqrt(∫|e(x)|² dA)
         for (vtkIdType i = 0; i < numCells; i++) {
             double area = areaArray->GetTuple1(i);
-            result += cellErrors[i] * cellErrors[i] * area;
+            errorNorm += cellErrors[i] * cellErrors[i] * area;
+            
+            // Calculate L2 norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm += trueGradMagnitude * trueGradMagnitude * area;
         }
-        return std::sqrt(result);
+        errorNorm = std::sqrt(errorNorm);
+        trueGradNorm = std::sqrt(trueGradNorm);
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     case NormType::LINF: {
         // L∞ norm is not area-weighted (maximum over all cells)
         for (vtkIdType i = 0; i < numCells; i++) {
-            result = std::max(result, cellErrors[i]);
+            errorNorm = std::max(errorNorm, cellErrors[i]);
+            
+            // Calculate L∞ norm of true gradient
+            Vector3D trueGrad = getVectorFromArray(trueGradArray, i);
+            double trueGradMagnitude = std::sqrt(trueGrad.x*trueGrad.x + trueGrad.y*trueGrad.y + trueGrad.z*trueGrad.z);
+            trueGradNorm = std::max(trueGradNorm, trueGradMagnitude);
         }
-        return result;
+        return (trueGradNorm > 0) ? errorNorm / trueGradNorm : 0.0;
     }
     default:
         throw std::runtime_error("Unknown norm type");
@@ -219,11 +246,17 @@ void GradientVisualizer::evaluateEpsilonError(
     
     std::cout << "Evaluating gradient error for epsilon range [" 
               << epsilon_min << ", " << epsilon_max << "] with " 
-              << num_points << " points..." << std::endl;
+              << num_points << " points (parallel)..." << std::endl;
     
     // Store original computed gradient array name to restore later
     std::string original_computed_name = computed_grad_array_name;
     
+    // Prepare vector to store results for parallel processing
+    std::vector<std::pair<double, double>> epsilon_error_pairs(num_points);
+    
+    // Parallel computation of errors for each epsilon
+    // Dynamic scheduling for better load balancing since epsilon computation times may vary
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < num_points; i++) {
         // Calculate epsilon value (logarithmic spacing for better coverage)
         double epsilon = epsilon_min * std::pow(epsilon_max / epsilon_min, 
@@ -239,18 +272,23 @@ void GradientVisualizer::evaluateEpsilonError(
         // Compute gradient with current epsilon
         grad_calc.attach_grad(temp_mesh);
         
-        // Temporarily update computed gradient array name for error calculation
-        std::string temp_computed_name = "Grad";
-        computed_grad_array_name = temp_computed_name;
-        
         // Create temporary visualizer for this epsilon
+        std::string temp_computed_name = "Grad";
         GradientVisualizer temp_visualizer(temp_mesh, true_grad_array_name, temp_computed_name);
         
         // Compute error norm
         double error = temp_visualizer.computeErrorNorm(normType);
         
-        // Write to CSV
-        csv_file << std::fixed << std::setprecision(6) << epsilon << "," << error << "\n";
+        // Store result (thread-safe since each thread writes to different index)
+        epsilon_error_pairs[i] = std::make_pair(epsilon, error);
+    }
+    
+    // Sort results by epsilon to ensure correct order (parallel processing might complete out of order)
+    std::sort(epsilon_error_pairs.begin(), epsilon_error_pairs.end());
+    
+    // Write results to CSV sequentially
+    for (const auto& pair : epsilon_error_pairs) {
+        csv_file << std::fixed << std::setprecision(6) << pair.first << "," << pair.second << "\n";
     }
     
     // Restore original computed gradient array name

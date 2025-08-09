@@ -21,6 +21,17 @@
 #include "../include/utils.h"
 #include "../include/visualizer.h"
 
+// Configuration: Function to test
+// Available functions: f_1/grad_f_1, f_2/grad_f_2, f_3/grad_f_3, f_4/grad_f_4, f_5/grad_f_5
+const auto TEST_FUNCTION = f_5;
+const auto TEST_FUNCTION_GRAD = grad_f_5;
+const std::string TEST_FUNCTION_NAME = "f_5_acoustic";
+
+// Example: To switch to f_2 (cos(theta)), change the above to:
+// const auto TEST_FUNCTION = f_2;
+// const auto TEST_FUNCTION_GRAD = grad_f_2;  
+// const std::string TEST_FUNCTION_NAME = "f_2_cos_theta";
+
 struct AnalysisResult {
     double mesh_size;
     double h_max; // Maximum cell diameter
@@ -78,7 +89,7 @@ std::pair<double, double> findOptimalEpsilon(vtkSmartPointer<vtkPolyData> mesh,
         test_mesh->DeepCopy(mesh);
 
         // Compute gradients with this epsilon
-        add_grads(test_mesh, f_4, grad_f_4, epsilon, kernel_2);
+        add_grads(test_mesh, TEST_FUNCTION, TEST_FUNCTION_GRAD, epsilon, kernel_2);
 
         // Compute error
         GradientVisualizer test_visualizer(test_mesh);
@@ -105,9 +116,9 @@ int main(int argc, char *argv[]) {
         const double epsilon_max = 0.5;
         const int epsilon_samples = 40;
 
-        // Different mesh sizes for analysis
+        // Different mesh sizes for analysis  
         std::vector<double> mesh_sizes;
-        for (double i = 0.05; i <= 0.5; i += 0.01) {
+        for (double i = 0.02; i <= 0.25; i += 0.01) {  // Original range for full analysis
             mesh_sizes.push_back(i);
         }
         std::vector<AnalysisResult> results;
@@ -147,8 +158,8 @@ int main(int argc, char *argv[]) {
             attach_center_to_cells(mesh);
             attach_area(mesh);
             double h_max = calculateMaxCellDiameter(mesh);
-            attach_f(mesh, f_4);
-            attach_f_true_grad(mesh, grad_f_4);
+            attach_f(mesh, TEST_FUNCTION);
+            attach_f_true_grad(mesh, TEST_FUNCTION_GRAD);
             auto timestamp_after_attach = std::chrono::high_resolution_clock::now();
             time_data_attachment += std::chrono::duration<double>(timestamp_after_attach - last_timestamp).count();
             last_timestamp = timestamp_after_attach;
@@ -159,6 +170,27 @@ int main(int argc, char *argv[]) {
             auto timestamp_after_epsilon = std::chrono::high_resolution_clock::now();
             time_epsilon_search += std::chrono::duration<double>(timestamp_after_epsilon - last_timestamp).count();
             last_timestamp = timestamp_after_epsilon;
+            
+            // --- Section 3.5: Compute final gradients with optimal epsilon and save mesh ---
+#pragma omp critical(mesh_processing_and_saving) // Thread-safe processing and file writing
+            {
+                // Create final mesh with optimal epsilon
+                vtkSmartPointer<vtkPolyData> final_mesh = vtkSmartPointer<vtkPolyData>::New();
+                final_mesh->DeepCopy(mesh);
+                add_grads(final_mesh, TEST_FUNCTION, TEST_FUNCTION_GRAD, optimal_epsilon, kernel_2);
+                
+                // Add error visualization to the mesh
+                GradientVisualizer visualizer(final_mesh);
+                visualizer.add_errors_in_mesh("GradientDifference", "ErrorMagnitude");
+                
+                // Save mesh with all fields attached
+                std::ostringstream mesh_filename;
+                mesh_filename << "meshes/sphere_analysis_" << TEST_FUNCTION_NAME 
+                             << "_h" << std::fixed << std::setprecision(3) 
+                             << mesh_size << "_eps" << std::setprecision(3) << optimal_epsilon << ".vtp";
+                write_mesh(final_mesh, mesh_filename.str());
+                std::cout << "Saved mesh: " << mesh_filename.str() << std::endl;
+            }
 
             // --- Section 4: Storage (and any other work) ---
 #pragma omp critical(results_storage) // Named critical section
@@ -192,7 +224,7 @@ int main(int argc, char *argv[]) {
         // Write results to CSV file
         std::cout << "\nSaving results..." << std::flush;
         std::system("mkdir -p out");
-        std::string csv_filename = "out/epsilon_vs_h_analysis.csv";
+        std::string csv_filename = "out/epsilon_vs_h_analysis_" + TEST_FUNCTION_NAME + ".csv";
         std::ofstream csv_file(csv_filename);
 
         if (csv_file.is_open()) {

@@ -88,6 +88,15 @@ Vector3D grad_f_5(const Vector3D &vec) {
     return gradient;
 }
 
+double f_5(const Vector3D &vec) {
+    const Vector3D k = {1,1,1};
+    const Vector3D q = {1,1,1};
+    return cos(k.x * vec.x + k.y * vec.y + k.z * vec.z);
+}
+Vector3D grad_f_5(const Vector3D &vec) {
+    return {0,0,0};
+}
+
 void attach_f(vtkSmartPointer<vtkPolyData> mesh,
               const std::function<double(Vector3D)> &f) {
 

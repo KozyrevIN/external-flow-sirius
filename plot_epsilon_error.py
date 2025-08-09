@@ -10,7 +10,7 @@ import argparse
 import os
 
 def plot_epsilon_error(csv_file, output_file=None, log_scale=True, 
-                       function_name="f", kernel_name="kernel", norm_name="L2"):
+                       function_name="f", kernel_name="kernel", norm_name="L2", h_max=None):
     """
     Plot epsilon vs error from CSV file.
     
@@ -78,6 +78,11 @@ def plot_epsilon_error(csv_file, output_file=None, log_scale=True,
     plt.plot(optimal_epsilon, min_error, 'ro', markersize=10, 
              label=f'Optimal: ε={optimal_epsilon:.4f}, {norm_name} Error={min_error:.2e}')
     
+    # Add h_max marker if provided
+    if h_max is not None:
+        plt.axvline(x=h_max, color='green', linestyle='--', linewidth=2, 
+                   label=f'h_max={h_max:.4f}')
+    
     plt.legend()
     plt.tight_layout()
     
@@ -104,6 +109,7 @@ def main():
     parser.add_argument('--function', default='f', help='Function name for plot title')
     parser.add_argument('--kernel', default='kernel', help='Kernel name for plot title')
     parser.add_argument('--norm', default='L2', help='Norm type for plot labels')
+    parser.add_argument('--h-max', type=float, help='Maximum cell diameter (h_max) to show as marker')
     
     args = parser.parse_args()
     
@@ -115,7 +121,7 @@ def main():
     
     # Plot the data
     plot_epsilon_error(args.csv_file, args.output, not args.linear,
-                      args.function, args.kernel, args.norm)
+                      args.function, args.kernel, args.norm, args.h_max)
     
     return 0
 
